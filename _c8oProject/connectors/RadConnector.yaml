@@ -1,0 +1,1296 @@
+comment: Connecteur cvtg_rad (DB_RAD), schema coesprit. Données COEsprit (membres, fiches, référentiels).
+jdbcDriverClassName: org.postgresql.Driver
+jdbcURL: ${DB_RAD}?currentSchema=coesprit
+jdbcUserName: ${AdminDB}
+jdbcUserPassword: xbc870dc161b16b0f06a9d06fdcf09c94b379617ee87b40aa7f198799672984f5
+↓T_Fiche_Appetences [transactions.SqlTransaction]: 
+  comment: Appétences d'une fiche, une ligne par terme (pas une chaîne).
+  sqlQuery: |
+    SELECT
+        t.id,
+        t.libelle,
+        t.statut,
+        COALESCE(t.domaine_id, '') AS domaine_id,
+        COALESCE(d.libelle, '') AS domaine,
+        COALESCE(d.tone, '') AS tone,
+        COALESCE(t.icon, '') AS icon
+    FROM "COE_FicheTerme" ft
+    JOIN "COE_Terme" t ON t.id = ft.terme_id
+    LEFT JOIN "COE_Domaine" d ON d.id = t.domaine_id
+    WHERE UPPER(ft.fiche_user_id) = UPPER('{user_id}')
+      AND t.statut <> 'archive'
+    ORDER BY d.libelle, t.libelle;
+  ↓user_id [variables.RequestableVariable]: 
+    description: Code agent fiche
+↓T_Fiche_Enregistrer [transactions.SqlTransaction]: 
+  comment: Crée ou met à jour une fiche profil (upsert sur user_id).
+  sqlQuery: |
+    INSERT INTO "COE_Fiche" (
+        user_id, nom_affiche, mail_si, site, id_perimetre, entite_operationnelle,
+        libelle_poste, activites_principales, sujets_aide, passions,
+        canal_mail, canal_teams, photo_url, updated_at
+    )
+    SELECT
+        m.code_agent,
+        COALESCE(NULLIF('{nom_affiche}', ''), m.nom_affiche),
+        COALESCE(NULLIF('{mail_si}', ''), m.mail),
+        m.site,
+        m.id_perimetre,
+        NULLIF('{entite_operationnelle}', ''),
+        NULLIF('{libelle_poste}', ''),
+        NULLIF('{activites_principales}', ''),
+        NULLIF('{sujets_aide}', ''),
+        NULLIF('{passions}', ''),
+        NULLIF('{canal_mail}', ''),
+        NULLIF('{canal_teams}', ''),
+        NULLIF('{photo_url}', ''),
+        now()
+    FROM "COE_Membre" m
+    WHERE UPPER(m.code_agent) = UPPER('{user_id}')
+      AND m.actif = true
+    ON CONFLICT (user_id) DO UPDATE SET
+        nom_affiche = COALESCE(EXCLUDED.nom_affiche, "COE_Fiche".nom_affiche),
+        mail_si = COALESCE(EXCLUDED.mail_si, "COE_Fiche".mail_si),
+        libelle_poste = COALESCE(EXCLUDED.libelle_poste, "COE_Fiche".libelle_poste),
+        activites_principales = COALESCE(EXCLUDED.activites_principales, "COE_Fiche".activites_principales),
+        sujets_aide = COALESCE(EXCLUDED.sujets_aide, "COE_Fiche".sujets_aide),
+        passions = COALESCE(EXCLUDED.passions, "COE_Fiche".passions),
+        canal_mail = COALESCE(EXCLUDED.canal_mail, "COE_Fiche".canal_mail),
+        canal_teams = COALESCE(EXCLUDED.canal_teams, "COE_Fiche".canal_teams),
+        photo_url = COALESCE(EXCLUDED.photo_url, "COE_Fiche".photo_url),
+        updated_at = now()
+    RETURNING user_id, updated_at;
+  ↓user_id [variables.RequestableVariable]: 
+    description: Code agent membre
+  ↓nom_affiche [variables.RequestableVariable]: 
+    description: Nom affiché
+  ↓mail_si [variables.RequestableVariable]: 
+    description: Mail SI
+  ↓site [variables.RequestableVariable]: 
+    description: Site
+  ↓perimetre [variables.RequestableVariable]: 
+    description: Ignoré — le périmètre vient du membre
+  ↓entite_operationnelle [variables.RequestableVariable]: 
+    description: Entité opérationnelle, posée seulement à la création
+  ↓libelle_poste [variables.RequestableVariable]: 
+    description: Libellé poste
+  ↓activites_principales [variables.RequestableVariable]: 
+    description: Activités principales
+  ↓sujets_aide [variables.RequestableVariable]: 
+    description: Sujets d'aide
+  ↓passions [variables.RequestableVariable]: 
+    description: Passions
+  ↓canal_mail [variables.RequestableVariable]: 
+    description: Canal mail
+  ↓canal_teams [variables.RequestableVariable]: 
+    description: Canal Teams
+  ↓photo_url [variables.RequestableVariable]: 
+    description: Base64 de la photo, sans préfixe data
+↓T_Fiche_Indicateurs [transactions.SqlTransaction]: 
+  comment: Même site et appétences uniques, dans la communauté de la fiche consultée.
+  sqlQuery: |
+    SELECT
+        f.user_id,
+        (
+            SELECT COUNT(*)
+            FROM "COE_Fiche" f2
+            JOIN "COE_Membre" m2 ON m2.code_agent = f2.user_id
+            WHERE m2.actif = true
+              AND m2.id_communaute = m.id_communaute
+              AND upper(f2.user_id) <> upper(f.user_id)
+              AND trim(COALESCE(f.site, '')) <> ''
+              AND lower(trim(COALESCE(f2.site, ''))) = lower(trim(f.site))
+        ) AS meme_site,
+        (
+            SELECT COUNT(*)
+            FROM "COE_FicheTerme" ft
+            WHERE ft.fiche_user_id = f.user_id
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM "COE_FicheTerme" ft2
+                  JOIN "COE_Membre" m2 ON m2.code_agent = ft2.fiche_user_id
+                  WHERE m2.actif = true
+                    AND m2.id_communaute = m.id_communaute
+                    AND upper(ft2.fiche_user_id) <> upper(f.user_id)
+                    AND ft2.terme_id = ft.terme_id
+              )
+        ) AS appetences_uniques
+    FROM "COE_Fiche" f
+    JOIN "COE_Membre" m ON m.code_agent = f.user_id
+    JOIN "COE_Membre" ms ON upper(ms.code_agent) = upper(trim('{session_user}'))
+    WHERE upper(f.user_id) = upper(trim('{user_id}'))
+      AND m.actif = true
+      AND ms.actif = true
+      AND m.id_communaute = ms.id_communaute;
+  ↓Test_Case [core.TestCase]: 
+    ↓user_id [variables.TestCaseVariable-1792514239093]: 
+      value: ac75001001
+    ↓session_user [variables.TestCaseVariable-1792514248848]: 
+      description: Code agent de la session, pour limiter le calcul à sa communauté
+      value: ac75001001
+  ↓user_id [variables.RequestableVariable]: 
+    description: Code agent de la fiche consultée
+  ↓session_user [variables.RequestableVariable]: 
+    description: Code agent de la session, pour limiter le calcul à sa communauté
+↓T_Fiche_Lire [transactions.SqlTransaction]: 
+  comment: Fiche profil d'un membre (code agent) avec ids termes agrégés.
+  sqlQuery: |
+    SELECT
+        f.user_id,
+        f.nom_affiche,
+        f.mail_si,
+        f.site,
+        p.libelle AS perimetre,
+        f.id_perimetre,
+        f.entite_operationnelle,
+        f.libelle_poste,
+        f.activites_principales,
+        f.sujets_aide,
+        f.passions,
+        f.canal_mail,
+        f.canal_teams,
+        f.photo_url,
+        f.updated_at,
+        m.role_local,
+        m.pilote_communaute,
+        m.role_session,
+        m.actif AS membre_actif,
+        c.id AS id_communaute,
+        c.libelle AS communaute
+    FROM "COE_Fiche" f
+    JOIN "COE_Membre" m ON m.code_agent = f.user_id
+    JOIN "COE_Communaute" c ON c.id = m.id_communaute
+    JOIN "COE_Communaute" p ON p.id = f.id_perimetre
+    WHERE UPPER(f.user_id) = UPPER('{user_id}');
+  ↓Test_Case [core.TestCase]: 
+    ↓user_id [variables.TestCaseVariable-1792505339444]: 
+      value: ac75001004
+  ↓user_id [variables.RequestableVariable]: 
+    description: Code agent (clé fiche)
+↓T_FicheTermes_Remplacer [transactions.SqlTransaction]: 
+  comment: Remplace les appétences cochées sur une fiche (liste terme_id séparés par virgules).
+  sqlQuery: |
+    WITH wanted AS (
+        SELECT DISTINCT btrim(x.tid) AS tid
+        FROM unnest(string_to_array(NULLIF(replace('{terme_ids}', ' ', ''), ''), ',')) AS x(tid)
+        JOIN "COE_Terme" t ON t.id = btrim(x.tid)
+        JOIN "COE_Fiche" f ON UPPER(f.user_id) = UPPER('{user_id}')
+        WHERE btrim(x.tid) <> ''
+          AND t.id_perimetre = f.id_perimetre
+          AND t.statut <> 'archive'
+    ),
+    suppr AS (
+        DELETE FROM "COE_FicheTerme" ft
+        WHERE UPPER(ft.fiche_user_id) = UPPER('{user_id}')
+          AND NOT EXISTS (SELECT 1 FROM wanted w WHERE w.tid = ft.terme_id)
+        RETURNING ft.terme_id
+    ),
+    ins AS (
+        INSERT INTO "COE_FicheTerme" (fiche_user_id, terme_id)
+        SELECT f.user_id, w.tid
+        FROM wanted w
+        JOIN "COE_Fiche" f ON UPPER(f.user_id) = UPPER('{user_id}')
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM "COE_FicheTerme" ft
+            WHERE UPPER(ft.fiche_user_id) = UPPER(f.user_id)
+              AND ft.terme_id = w.tid
+        )
+        ON CONFLICT DO NOTHING
+        RETURNING terme_id
+    )
+    SELECT
+        (SELECT COUNT(*) FROM wanted) AS nb_termes,
+        EXISTS (SELECT 1 FROM "COE_Fiche" WHERE UPPER(user_id) = UPPER('{user_id}')) AS fiche_existe
+    WHERE (SELECT COUNT(*) FROM suppr) >= 0
+      AND (SELECT COUNT(*) FROM ins) >= 0;
+  ↓user_id [variables.RequestableVariable]: 
+    description: Code agent fiche
+  ↓terme_ids [variables.RequestableVariable]: 
+    description: Ids termes séparés par virgules
+↓T_Termes_Proposes_Orphelins [transactions.SqlTransaction]: 
+  comment: Supprime les appétences proposées du périmètre que plus aucune fiche n a.
+  sqlQuery: |
+    DELETE FROM "COE_Terme" t
+    WHERE t.statut = 'propose'
+      AND t.id_perimetre = (
+          SELECT f.id_perimetre
+          FROM "COE_Fiche" f
+          WHERE UPPER(f.user_id) = UPPER('{user_id}')
+      )
+      AND NOT EXISTS (
+          SELECT 1
+          FROM "COE_FicheTerme" ft
+          WHERE ft.terme_id = t.id
+      )
+    RETURNING t.id;
+  ↓user_id [variables.RequestableVariable]: 
+    description: Code agent de la fiche enregistrée
+↓T_Membre_Resoudre [transactions.SqlTransaction]: 
+  comment: Résout un membre actif par code agent (connexion SI).
+  sqlQuery: |
+    SELECT
+        m.code_agent AS cle,
+        COALESCE(NULLIF(TRIM(f.nom_affiche), ''), NULLIF(TRIM(m.nom_affiche), ''), m.code_agent) AS nom,
+        COALESCE(f.photo_url, '') AS photo_url,
+        m.code_agent AS cle_externe,
+        m.role_session AS code_role,
+        m.role_local,
+        m.pilote_communaute,
+        c.id AS id_communaute,
+        c.libelle AS communaute,
+        m.id_perimetre,
+        p.libelle AS perimetre
+    FROM "COE_Membre" m
+    JOIN "COE_Communaute" c ON c.id = m.id_communaute
+    JOIN "COE_Communaute" p ON p.id = m.id_perimetre
+    LEFT JOIN "COE_Fiche" f ON UPPER(f.user_id) = UPPER(m.code_agent)
+    WHERE '{code}' <> ''
+      AND UPPER(m.code_agent) = UPPER('{code}')
+      AND m.actif = true
+      AND c.active = true
+      AND p.active = true
+    LIMIT 1;
+  ↓code [variables.RequestableVariable]: 
+    description: Code agent SI
+↓T_Membre_Test [transactions.SqlTransaction]: 
+  ↑default: true
+  comment: Résolution membre hors SI (code agent ou id interne, filtre rôle optionnel).
+  sqlQuery: |
+    SELECT
+        m.code_agent AS cle,
+        COALESCE(NULLIF(TRIM(f.nom_affiche), ''), NULLIF(TRIM(m.nom_affiche), ''), m.code_agent) AS nom,
+        COALESCE(f.photo_url, '') AS photo_url,
+        m.code_agent AS cle_externe,
+        m.role_session AS code_role,
+        m.role_local,
+        m.pilote_communaute,
+        c.id AS id_communaute,
+        c.libelle AS communaute,
+        m.id_perimetre
+    FROM "COE_Membre" m
+    JOIN "COE_Communaute" c ON c.id = m.id_communaute
+    LEFT JOIN "COE_Fiche" f ON UPPER(f.user_id) = UPPER(m.code_agent)
+    WHERE m.actif = true
+      AND c.active = true
+      AND (
+        '{cle}' = ''
+        OR UPPER(m.code_agent) = UPPER('{cle}')
+        OR m.id::text = '{cle}'
+      )
+      AND ('{role}' = '' OR UPPER(m.role_session) = UPPER('{role}'))
+    ORDER BY m.nom_affiche
+    LIMIT 1;
+  ↓cle [variables.RequestableVariable]: 
+    description: Code agent ou id membre
+  ↓role [variables.RequestableVariable]: 
+    description: membre, pilote ou admin (optionnel)
+↓T_Recherche_Profils [transactions.SqlTransaction]: 
+  comment: Recherche de fiches membres actifs d'une communauté (texte, site, périmètre, domaine).
+  sqlQuery: |
+    SELECT DISTINCT
+        f.user_id,
+        f.nom_affiche,
+        f.mail_si,
+        f.site,
+        p.libelle AS perimetre,
+        f.id_perimetre,
+        f.entite_operationnelle,
+        f.libelle_poste,
+        f.activites_principales,
+        f.photo_url,
+        f.updated_at,
+        c.libelle AS communaute,
+        m.role_local,
+        COALESCE(
+            (SELECT string_agg(ft.terme_id, ',' ORDER BY ft.terme_id)
+             FROM "COE_FicheTerme" ft
+             WHERE ft.fiche_user_id = f.user_id),
+            ''
+        ) AS terme_ids,
+        COALESCE(
+            (SELECT string_agg(t.libelle, '|' ORDER BY ft.terme_id)
+             FROM "COE_FicheTerme" ft
+             JOIN "COE_Terme" t ON t.id = ft.terme_id
+             WHERE ft.fiche_user_id = f.user_id),
+            ''
+        ) AS terme_libelles,
+        COALESCE(
+            (SELECT string_agg(DISTINCT (d.id || '::' || d.libelle || '::' || COALESCE(d.tone, 'sky')), '|' ORDER BY (d.id || '::' || d.libelle || '::' || COALESCE(d.tone, 'sky')))
+             FROM "COE_FicheTerme" ft
+             JOIN "COE_Terme" t ON t.id = ft.terme_id
+             JOIN "COE_Domaine" d ON d.id = t.domaine_id
+             WHERE ft.fiche_user_id = f.user_id),
+            ''
+        ) AS domaine_chips
+    FROM "COE_Fiche" f
+    JOIN "COE_Membre" m ON m.code_agent = f.user_id
+    JOIN "COE_Communaute" c ON c.id = m.id_communaute
+    JOIN "COE_Communaute" p ON p.id = f.id_perimetre
+    LEFT JOIN "COE_FicheTerme" ft ON ft.fiche_user_id = f.user_id
+    LEFT JOIN "COE_Terme" t ON t.id = ft.terme_id
+    WHERE m.actif = true
+      AND c.active = true
+      AND p.active = true
+      AND ('{id_communaute}' = '' OR c.id = '{id_communaute}')
+      AND ('{site}' = '' OR f.site = ANY (string_to_array('{site}', '|')))
+      AND ('{libelle_poste}' = '' OR f.libelle_poste = ANY (string_to_array('{libelle_poste}', '|')))
+      AND ('{entite}' = '' OR f.entite_operationnelle = ANY (string_to_array('{entite}', '|')))
+      AND (
+        '{perimetre}' = ''
+        OR p.id = '{perimetre}'
+        OR p.libelle = '{perimetre}'
+      )
+      AND (
+        '{domaine_id}' = ''
+        OR EXISTS (
+          SELECT 1
+          FROM "COE_FicheTerme" ftd
+          JOIN "COE_Terme" td ON td.id = ftd.terme_id
+          WHERE ftd.fiche_user_id = f.user_id
+            AND td.domaine_id = ANY (string_to_array('{domaine_id}', '|'))
+        )
+      )
+      AND ('{terme_id}' = '' OR ft.terme_id = ANY (string_to_array('{terme_id}', '|')))
+      AND (
+        '{q}' = ''
+        OR translate(lower(concat_ws(' ',
+          f.nom_affiche,
+          COALESCE(f.mail_si, ''),
+          COALESCE(f.libelle_poste, ''),
+          COALESCE(f.activites_principales, ''),
+          COALESCE(f.sujets_aide, ''),
+          COALESCE(f.passions, ''),
+          COALESCE(f.site, ''),
+          COALESCE(f.entite_operationnelle, ''),
+          COALESCE(p.libelle, ''),
+          COALESCE(c.libelle, ''),
+          COALESCE((
+            SELECT string_agg(t2.libelle, ' ')
+            FROM "COE_FicheTerme" ft2
+            JOIN "COE_Terme" t2 ON t2.id = ft2.terme_id
+            WHERE ft2.fiche_user_id = f.user_id
+          ), ''),
+          COALESCE((
+            SELECT string_agg(DISTINCT d2.libelle, ' ')
+            FROM "COE_FicheTerme" ft3
+            JOIN "COE_Terme" t3 ON t3.id = ft3.terme_id
+            JOIN "COE_Domaine" d2 ON d2.id = t3.domaine_id
+            WHERE ft3.fiche_user_id = f.user_id
+          ), '')
+        )), 'àâäáéèêëïîìôöóùûüüç', 'aaaaeeeeiiiooouuuuc')
+        LIKE '%' || translate(lower('{q}'), 'àâäáéèêëïîìôöóùûüüç', 'aaaaeeeeiiiooouuuuc') || '%'
+      )
+    ORDER BY f.nom_affiche;
+  ↓q [variables.RequestableVariable]: 
+    description: Texte libre
+  ↓id_communaute [variables.RequestableVariable]: 
+    description: Id communauté parente
+  ↓site [variables.RequestableVariable]: 
+    description: Sites séparés par |, vide = tous
+  ↓libelle_poste [variables.RequestableVariable]: 
+    description: Filtre libellé du poste
+  ↓entite [variables.RequestableVariable]: 
+    description: Filtre entité opérationnelle
+  ↓perimetre [variables.RequestableVariable]: 
+    description: Id ou libellé du périmètre de travail
+  ↓domaine_id [variables.RequestableVariable]: 
+    description: Filtre domaine appétence
+  ↓terme_id [variables.RequestableVariable]: 
+    description: Filtre une appétence précise
+↓T_Referentiel_Domaines [transactions.SqlTransaction]: 
+  comment: Domaines d'appétences (référentiel COE_Domaine).
+  sqlQuery: |
+    SELECT
+        d.id AS id,
+        d.id AS domaine_id,
+        d.libelle,
+        COALESCE(d.tone, '') AS tone,
+        d.id_perimetre
+    FROM "COE_Domaine" d
+    JOIN "COE_Communaute" p ON p.id = d.id_perimetre
+    WHERE p.active = true
+      AND ('{id_perimetre}' = '' OR d.id_perimetre = '{id_perimetre}')
+      AND ('{id_communaute}' = '' OR p.parent_id = '{id_communaute}')
+    ORDER BY d.libelle;
+  ↓id_perimetre [variables.RequestableVariable]: 
+    description: Périmètre (vide = tous)
+  ↓id_communaute [variables.RequestableVariable]: 
+    description: Communauté parente (posée par la séquence, pas par le client)
+↓T_Referentiel_Listes [transactions.SqlTransaction]: 
+  comment: Valeurs distinctes sites, périmètres, postes et entités (listes déroulantes).
+  sqlQuery: |
+    SELECT 'site' AS liste, f.site AS valeur
+    FROM "COE_Fiche" f
+    JOIN "COE_Membre" m ON m.code_agent = f.user_id
+    WHERE f.site IS NOT NULL AND TRIM(f.site) <> ''
+      AND ('{id_communaute}' = '' OR m.id_communaute = '{id_communaute}')
+    GROUP BY f.site
+    UNION ALL
+    SELECT 'perimetre', p.libelle
+    FROM "COE_Communaute" p
+    WHERE p.parent_id IS NOT NULL
+      AND p.active = true
+      AND ('{id_communaute}' = '' OR p.parent_id = '{id_communaute}')
+    GROUP BY p.libelle
+    UNION ALL
+    SELECT 'poste', f.libelle_poste
+    FROM "COE_Fiche" f
+    JOIN "COE_Membre" m ON m.code_agent = f.user_id
+    WHERE f.libelle_poste IS NOT NULL AND TRIM(f.libelle_poste) <> ''
+      AND ('{id_communaute}' = '' OR m.id_communaute = '{id_communaute}')
+    GROUP BY f.libelle_poste
+    UNION ALL
+    SELECT 'entite', f.entite_operationnelle
+    FROM "COE_Fiche" f
+    JOIN "COE_Membre" m ON m.code_agent = f.user_id
+    WHERE f.entite_operationnelle IS NOT NULL AND TRIM(f.entite_operationnelle) <> ''
+      AND ('{id_communaute}' = '' OR m.id_communaute = '{id_communaute}')
+    GROUP BY f.entite_operationnelle
+    ORDER BY liste, valeur;
+  ↓id_communaute [variables.RequestableVariable]: 
+    description: Communauté parente (posée par la séquence)
+↓T_Referentiel_Termes [transactions.SqlTransaction]: 
+  comment: Termes / appétences d'une communauté (code ou id).
+  sqlQuery: |
+    SELECT
+        t.id AS id,
+        t.id AS terme_id,
+        t.libelle,
+        t.statut,
+        COALESCE(t.domaine_id, '') AS domaine_id,
+        COALESCE(t.icon, '') AS icon,
+        p.parent_id AS id_communaute,
+        t.id_perimetre,
+        p.libelle AS perimetre
+    FROM "COE_Terme" t
+    JOIN "COE_Communaute" p ON p.id = t.id_perimetre
+    WHERE p.active = true
+      AND (
+        t.statut = 'valide'
+        OR (
+          t.statut = 'propose'
+          AND EXISTS (
+            SELECT 1 FROM "COE_FicheTerme" ft WHERE ft.terme_id = t.id
+          )
+        )
+      )
+      AND ('{id_perimetre}' = '' OR t.id_perimetre = '{id_perimetre}')
+      AND (
+        '{id_communaute}' = ''
+        OR p.parent_id = '{id_communaute}'
+        OR p.id = '{id_communaute}'
+      )
+      AND ('{statut}' = '' OR t.statut = '{statut}')
+    ORDER BY t.libelle;
+  ↓id_perimetre [variables.RequestableVariable]: 
+    description: Périmètre de travail
+  ↓id_communaute [variables.RequestableVariable]: 
+    description: Communauté parente
+  ↓statut [variables.RequestableVariable]: 
+    description: Filtre statut valide|propose|refuse|archive (optionnel)
+↓T_Terme_Proposer [transactions.SqlTransaction]: 
+  comment: Crée un terme proposé et l attache à la fiche du membre.
+  sqlQuery: |
+    WITH c AS (
+        SELECT m.id_perimetre, m.code_agent
+        FROM "COE_Membre" m
+        WHERE UPPER(m.code_agent) = UPPER('{code_agent}')
+          AND m.actif = true
+        LIMIT 1
+    ),
+    doublon AS (
+        SELECT t.id, COALESCE(d.libelle, '') AS domaine
+        FROM "COE_Terme" t
+        JOIN c ON c.id_perimetre = t.id_perimetre
+        LEFT JOIN "COE_Domaine" d ON d.id = t.domaine_id
+        WHERE t.statut <> 'archive'
+          AND lower(regexp_replace(btrim(t.libelle), '[[:space:]]+', ' ', 'g'))
+              = lower(regexp_replace(btrim('{libelle}'), '[[:space:]]+', ' ', 'g'))
+    ),
+    ins AS (
+        INSERT INTO "COE_Terme" (id, id_perimetre, libelle, statut, domaine_id)
+        SELECT
+            't-' || substr(md5(random()::text || clock_timestamp()::text), 1, 12),
+            c.id_perimetre,
+            TRIM('{libelle}'),
+            'propose',
+            d.id
+        FROM c
+        JOIN "COE_Domaine" d
+          ON d.id = NULLIF('{domaine_id}', '')
+         AND d.id_perimetre = c.id_perimetre
+        WHERE NOT EXISTS (SELECT 1 FROM doublon)
+        RETURNING id, libelle, domaine_id, statut
+    ),
+    link AS (
+        INSERT INTO "COE_FicheTerme" (fiche_user_id, terme_id)
+        SELECT c.code_agent, ins.id
+        FROM c, ins
+        WHERE EXISTS (SELECT 1 FROM "COE_Fiche" f WHERE f.user_id = c.code_agent)
+        ON CONFLICT DO NOTHING
+        RETURNING terme_id
+    )
+    SELECT
+        COALESCE((SELECT ins.id FROM ins), '') AS terme_id,
+        EXISTS (SELECT 1 FROM doublon) AS deja_present,
+        COALESCE((SELECT string_agg(DISTINCT domaine, ', ') FROM doublon), '') AS domaines,
+        EXISTS (SELECT 1 FROM link) AS rattache;
+  ↓code_agent [variables.RequestableVariable]: 
+    description: Code agent auteur
+  ↓libelle [variables.RequestableVariable]: 
+    description: Libellé proposé
+  ↓domaine_id [variables.RequestableVariable]: 
+    description: Domaine rattache
+↓T_Agent_Chercher [transactions.SqlTransaction]: 
+  comment: Annuaire hors SI : nom, mail, code, LibelleService, deja membre.
+  sqlQuery: |
+    WITH acteur AS (
+        SELECT m.code_agent, m.role_session, m.pilote_communaute, m.role_local, m.id_communaute, m.id_perimetre
+        FROM "COE_Membre" m
+        WHERE m.actif = true AND UPPER(m.code_agent) = UPPER('{session_user}')
+        LIMIT 1
+    )
+    SELECT
+        a.code_agent,
+        a.nom,
+        COALESCE(a.mail, '') AS mail,
+        COALESCE(a.site, '') AS site,
+        COALESCE(a.libelle_service, '') AS libelle_service,
+        CASE WHEN COALESCE(btrim(a.libelle_service), '') = '' THEN 'non' ELSE 'oui' END AS a_mapping,
+        CASE WHEN EXISTS (
+            SELECT 1 FROM "COE_Membre" m
+            WHERE UPPER(m.code_agent) = UPPER(a.code_agent) AND m.actif = true
+        ) THEN 'oui' ELSE 'non' END AS deja_membre
+    FROM "COE_Agent" a
+    WHERE EXISTS (SELECT 1 FROM acteur s WHERE s.role_session = 'admin' OR s.pilote_communaute = true OR s.role_local = 'pilote')
+      AND (
+        '{q}' = ''
+        OR translate(lower(concat_ws(' ', a.nom, COALESCE(a.mail, ''), a.code_agent)), 'àâäáéèêëïîìôöóùûüüç', 'aaaaeeeeiiiooouuuuc')
+           LIKE '%' || translate(lower('{q}'), 'àâäáéèêëïîìôöóùûüüç', 'aaaaeeeeiiiooouuuuc') || '%'
+      )
+    ORDER BY a.nom
+    LIMIT 80
+  ↓session_user [variables.RequestableVariable]: 
+    description: Acteur de session
+  ↓q [variables.RequestableVariable]: 
+    description: Filtre nom mail ou code
+↓T_Acteur_Droits [transactions.SqlTransaction]: 
+  comment: Drapeaux de l acteur connecte.
+  sqlQuery: |
+    SELECT
+        m.code_agent,
+        m.role_session,
+        m.role_local,
+        CASE WHEN m.pilote_communaute THEN 'oui' ELSE 'non' END AS pilote_communaute,
+        m.id_communaute,
+        COALESCE(c.libelle, '') AS communaute,
+        m.id_perimetre,
+        COALESCE(p.libelle, '') AS perimetre
+    FROM "COE_Membre" m
+    LEFT JOIN "COE_Communaute" c ON c.id = m.id_communaute
+    LEFT JOIN "COE_Communaute" p ON p.id = m.id_perimetre
+    WHERE m.actif = true AND UPPER(m.code_agent) = UPPER('{session_user}')
+    LIMIT 1
+  ↓session_user [variables.RequestableVariable]: 
+    description: Acteur de session
+↓T_Structure_Lire [transactions.SqlTransaction]: 
+  comment: Arbre communaute et perimetre visible selon le role.
+  sqlQuery: |
+    WITH acteur AS (
+        SELECT m.code_agent, m.role_session, m.pilote_communaute, m.role_local, m.id_communaute, m.id_perimetre
+        FROM "COE_Membre" m
+        WHERE m.actif = true AND UPPER(m.code_agent) = UPPER('{session_user}')
+        LIMIT 1
+    )
+    SELECT
+        c.id,
+        c.libelle,
+        COALESCE(c.parent_id, '') AS parent_id,
+        CASE WHEN c.active THEN 'oui' ELSE 'non' END AS active,
+        CASE WHEN c.parent_id IS NULL THEN 'communaute' ELSE 'perimetre' END AS kind,
+        CASE WHEN c.parent_id IS NULL
+            THEN (SELECT count(*) FROM "COE_Membre" mb WHERE mb.actif = true AND mb.id_communaute = c.id)
+            ELSE (SELECT count(*) FROM "COE_Membre" mb WHERE mb.actif = true AND mb.id_perimetre = c.id)
+        END AS nb_membres
+    FROM "COE_Communaute" c
+    JOIN acteur s ON true
+    WHERE (
+        s.role_session = 'admin'
+        OR (s.pilote_communaute = true AND (c.id = s.id_communaute OR c.parent_id = s.id_communaute))
+        OR (s.role_local = 'pilote' AND (c.id = s.id_perimetre OR c.id = s.id_communaute))
+    )
+    AND (s.role_session = 'admin' OR c.active = true)
+    ORDER BY c.parent_id NULLS FIRST, c.libelle
+  ↓session_user [variables.RequestableVariable]: 
+    description: Acteur de session
+↓T_Membres_Lire [transactions.SqlTransaction]: 
+  comment: Membres actifs visibles par l acteur.
+  sqlQuery: |
+    WITH acteur AS (
+        SELECT m.code_agent, m.role_session, m.pilote_communaute, m.role_local, m.id_communaute, m.id_perimetre
+        FROM "COE_Membre" m
+        WHERE m.actif = true AND UPPER(m.code_agent) = UPPER('{session_user}')
+        LIMIT 1
+    )
+    SELECT
+        m.code_agent,
+        m.nom_affiche,
+        COALESCE(m.mail, '') AS mail,
+        COALESCE(m.site, '') AS site,
+        m.id_communaute,
+        m.id_perimetre,
+        m.role_local,
+        CASE WHEN m.pilote_communaute THEN 'oui' ELSE 'non' END AS pilote_communaute,
+        COALESCE(f.entite_operationnelle, '') AS entite_operationnelle,
+        COALESCE(p.libelle, '') AS perimetre,
+        COALESCE(c.libelle, '') AS communaute
+    FROM "COE_Membre" m
+    JOIN acteur s ON true
+    LEFT JOIN "COE_Fiche" f ON UPPER(f.user_id) = UPPER(m.code_agent)
+    LEFT JOIN "COE_Communaute" p ON p.id = m.id_perimetre
+    LEFT JOIN "COE_Communaute" c ON c.id = m.id_communaute
+    WHERE m.actif = true
+      AND (
+        s.role_session = 'admin'
+        OR (s.pilote_communaute = true AND m.id_communaute = s.id_communaute)
+        OR (s.role_local = 'pilote' AND m.id_perimetre = s.id_perimetre)
+      )
+      AND ('{id_perimetre}' = '' OR m.id_perimetre = '{id_perimetre}')
+      AND ('{id_communaute}' = '' OR m.id_communaute = '{id_communaute}')
+    ORDER BY m.nom_affiche
+  ↓session_user [variables.RequestableVariable]: 
+    description: Acteur de session
+  ↓id_perimetre [variables.RequestableVariable]: 
+    description: Filtre perimetre optionnel
+  ↓id_communaute [variables.RequestableVariable]: 
+    description: Filtre communaute optionnel
+↓T_Structure_Enregistrer [transactions.SqlTransaction]: 
+  comment: Cree ou renomme une communaute ou un perimetre. Id genere cote serveur.
+  sqlQuery: |
+    WITH acteur AS (
+        SELECT m.code_agent, m.role_session, m.pilote_communaute, m.role_local, m.id_communaute, m.id_perimetre
+        FROM "COE_Membre" m
+        WHERE m.actif = true AND UPPER(m.code_agent) = UPPER('{session_user}')
+        LIMIT 1
+    ),
+    droit AS (
+        SELECT CASE
+            WHEN NOT EXISTS (SELECT 1 FROM acteur) THEN 'non'
+            WHEN '{action}' IN ('creer_communaute', 'desactiver') AND (SELECT role_session FROM acteur) = 'admin' THEN 'oui'
+            WHEN '{action}' = 'creer_perimetre' AND (
+                (SELECT role_session FROM acteur) = 'admin'
+                OR ((SELECT pilote_communaute FROM acteur) = true AND (SELECT id_communaute FROM acteur) = '{parent_id}')
+            ) THEN 'oui'
+            WHEN '{action}' = 'renommer' AND (
+                (SELECT role_session FROM acteur) = 'admin'
+                OR (
+                    (SELECT pilote_communaute FROM acteur) = true
+                    AND (
+                        '{node_id}' = (SELECT id_communaute FROM acteur)
+                        OR EXISTS (
+                            SELECT 1 FROM "COE_Communaute" c
+                            WHERE c.id = '{node_id}' AND c.parent_id = (SELECT id_communaute FROM acteur)
+                        )
+                    )
+                )
+            ) THEN 'oui'
+            ELSE 'non'
+        END AS ok
+    ),
+    ins AS (
+        INSERT INTO "COE_Communaute" (id, libelle, active, parent_id)
+        SELECT
+            CASE WHEN '{action}' = 'creer_communaute' THEN 'c-' ELSE 'p-' END || substr(md5(random()::text || clock_timestamp()::text), 1, 10),
+            btrim('{libelle}'),
+            true,
+            CASE WHEN '{action}' = 'creer_perimetre' THEN NULLIF('{parent_id}', '') ELSE NULL END
+        WHERE (SELECT ok FROM droit) = 'oui'
+          AND '{action}' IN ('creer_communaute', 'creer_perimetre')
+          AND length(btrim('{libelle}')) > 0
+          AND (
+            '{action}' = 'creer_communaute'
+            OR EXISTS (
+                SELECT 1 FROM "COE_Communaute" parent
+                WHERE parent.id = '{parent_id}' AND parent.parent_id IS NULL AND parent.active = true
+            )
+          )
+        RETURNING id
+    ),
+    maj AS (
+        UPDATE "COE_Communaute" c
+        SET libelle = btrim('{libelle}')
+        WHERE (SELECT ok FROM droit) = 'oui'
+          AND '{action}' = 'renommer'
+          AND c.id = '{node_id}'
+          AND length(btrim('{libelle}')) > 0
+        RETURNING c.id
+    ),
+    ext AS (
+        UPDATE "COE_Communaute" c
+        SET active = ('{actif}' = 'oui')
+        WHERE (SELECT ok FROM droit) = 'oui'
+          AND '{action}' = 'desactiver'
+          AND (c.id = '{node_id}' OR c.parent_id = '{node_id}')
+        RETURNING c.id
+    )
+    SELECT
+        CASE
+            WHEN (SELECT ok FROM droit) = 'oui' AND (EXISTS (SELECT 1 FROM ins) OR EXISTS (SELECT 1 FROM maj) OR EXISTS (SELECT 1 FROM ext)) THEN 'oui'
+            ELSE 'non'
+        END AS ok,
+        CASE
+            WHEN (SELECT ok FROM droit) <> 'oui' THEN 'Action non autorisee'
+            WHEN '{action}' IN ('creer_communaute', 'creer_perimetre', 'renommer') AND length(btrim('{libelle}')) = 0 THEN 'Saisissez un nom'
+            WHEN NOT (EXISTS (SELECT 1 FROM ins) OR EXISTS (SELECT 1 FROM maj) OR EXISTS (SELECT 1 FROM ext)) THEN 'Enregistrement refuse'
+            ELSE ''
+        END AS message,
+        COALESCE((SELECT id FROM ins LIMIT 1), (SELECT id FROM maj LIMIT 1), (SELECT id FROM ext LIMIT 1), '') AS node_id
+  ↓session_user [variables.RequestableVariable]: 
+    description: Acteur de session
+  ↓action [variables.RequestableVariable]: 
+    description: creer_communaute, creer_perimetre, renommer ou desactiver
+  ↓node_id [variables.RequestableVariable]: 
+    description: Id cible pour renommer ou desactiver
+  ↓parent_id [variables.RequestableVariable]: 
+    description: Communaute parente pour un perimetre
+  ↓libelle [variables.RequestableVariable]: 
+    description: Nom affiche
+  ↓actif [variables.RequestableVariable]: 
+    description: oui ou non pour desactiver
+↓T_Membre_Ajouter [transactions.SqlTransaction]: 
+  comment: Ajoute un agent a une communaute et un perimetre. Refuse sans LibelleService ou si deja membre.
+  sqlQuery: |
+    WITH acteur AS (
+        SELECT m.code_agent, m.role_session, m.pilote_communaute, m.role_local, m.id_communaute, m.id_perimetre
+        FROM "COE_Membre" m
+        WHERE m.actif = true AND UPPER(m.code_agent) = UPPER('{session_user}')
+        LIMIT 1
+    ),
+    peri AS (
+        SELECT p.id, p.parent_id, p.libelle
+        FROM "COE_Communaute" p
+        WHERE p.id = '{id_perimetre}' AND p.parent_id = '{id_communaute}' AND p.active = true AND p.parent_id IS NOT NULL
+    ),
+    agent AS (
+        SELECT
+            '{code_agent}' AS code_agent,
+            '{nom}' AS nom,
+            '{mail}' AS mail,
+            '{site}' AS site,
+            '{libelle_service}' AS libelle_service
+        WHERE '{code_agent}' <> '' AND '{nom}' <> ''
+    ),
+    verdict AS (
+        SELECT CASE
+            WHEN NOT EXISTS (SELECT 1 FROM acteur) THEN 'Action non autorisee'
+            WHEN NOT EXISTS (SELECT 1 FROM peri) THEN 'Perimetre invalide'
+            WHEN NOT EXISTS (SELECT 1 FROM agent) THEN 'Agent introuvable'
+            WHEN COALESCE(btrim((SELECT libelle_service FROM agent)), '') = '' THEN 'Ajout bloque : pas de LibelleService'
+            WHEN EXISTS (
+                SELECT 1 FROM "COE_Membre" m
+                WHERE UPPER(m.code_agent) = UPPER((SELECT code_agent FROM agent)) AND m.actif = true
+            ) THEN 'Cette personne a deja une appartenance active'
+            WHEN '{role}' NOT IN ('membre', 'pilote_perimetre', 'pilote_communaute') THEN 'Role invalide'
+            WHEN (SELECT role_session FROM acteur) = 'admin' THEN ''
+            WHEN (SELECT pilote_communaute FROM acteur) = true AND (SELECT id_communaute FROM acteur) = '{id_communaute}' THEN ''
+            WHEN (SELECT role_local FROM acteur) = 'pilote' AND (SELECT id_perimetre FROM acteur) = '{id_perimetre}' AND '{role}' = 'membre' THEN ''
+            WHEN (SELECT role_local FROM acteur) = 'pilote' AND (SELECT id_perimetre FROM acteur) = '{id_perimetre}' THEN 'Seul le pilote de la communaute peut nommer un pilote'
+            ELSE 'Action non autorisee'
+        END AS message
+    ),
+    ins_m AS (
+        INSERT INTO "COE_Membre" (
+            code_agent, nom_affiche, mail, site, id_communaute, id_perimetre,
+            role_local, pilote_communaute, role_session, actif
+        )
+        SELECT
+            a.code_agent,
+            a.nom,
+            a.mail,
+            a.site,
+            '{id_communaute}',
+            '{id_perimetre}',
+            CASE WHEN '{role}' IN ('pilote_perimetre', 'pilote_communaute') THEN 'pilote' ELSE 'membre' END,
+            CASE WHEN '{role}' = 'pilote_communaute' THEN true ELSE false END,
+            'membre',
+            true
+        FROM agent a
+        WHERE (SELECT message FROM verdict) = ''
+        ON CONFLICT (code_agent) DO UPDATE SET
+            nom_affiche = EXCLUDED.nom_affiche,
+            mail = EXCLUDED.mail,
+            site = EXCLUDED.site,
+            id_communaute = EXCLUDED.id_communaute,
+            id_perimetre = EXCLUDED.id_perimetre,
+            role_local = EXCLUDED.role_local,
+            pilote_communaute = EXCLUDED.pilote_communaute,
+            actif = true
+        RETURNING code_agent, id_perimetre
+    ),
+    ins_f AS (
+        INSERT INTO "COE_Fiche" (
+            user_id, nom_affiche, mail_si, site, id_perimetre, entite_operationnelle, canal_mail, canal_teams
+        )
+        SELECT m.code_agent, '{nom}', '{mail}', '{site}', m.id_perimetre, '{libelle_service}', '{mail}', '{mail}'
+        FROM ins_m m
+        ON CONFLICT (user_id) DO UPDATE SET
+            nom_affiche = EXCLUDED.nom_affiche,
+            mail_si = EXCLUDED.mail_si,
+            site = EXCLUDED.site,
+            id_perimetre = EXCLUDED.id_perimetre,
+            entite_operationnelle = EXCLUDED.entite_operationnelle,
+            canal_mail = COALESCE(NULLIF("COE_Fiche".canal_mail, ''), EXCLUDED.canal_mail),
+            canal_teams = COALESCE(NULLIF("COE_Fiche".canal_teams, ''), EXCLUDED.canal_teams),
+            updated_at = now()
+        RETURNING user_id
+    )
+    SELECT
+        CASE WHEN (SELECT message FROM verdict) = '' AND EXISTS (SELECT 1 FROM ins_m) THEN 'oui' ELSE 'non' END AS ok,
+        CASE
+            WHEN (SELECT message FROM verdict) <> '' THEN (SELECT message FROM verdict)
+            WHEN NOT EXISTS (SELECT 1 FROM ins_m) THEN 'Enregistrement refuse'
+            ELSE ''
+        END AS message,
+        COALESCE((SELECT code_agent FROM ins_m LIMIT 1), '') AS code_agent
+  ↓session_user [variables.RequestableVariable]: 
+    description: Acteur de session
+  ↓code_agent [variables.RequestableVariable]: 
+    description: Agent a ajouter
+  ↓id_communaute [variables.RequestableVariable]: 
+    description: Communaute
+  ↓id_perimetre [variables.RequestableVariable]: 
+    description: Perimetre
+  ↓role [variables.RequestableVariable]: 
+    description: membre, pilote_perimetre ou pilote_communaute
+  ↓nom [variables.RequestableVariable]: 
+    description: Nom affiche issu de l annuaire
+  ↓mail [variables.RequestableVariable]: 
+    description: Courriel annuaire
+  ↓site [variables.RequestableVariable]: 
+    description: Ville annuaire
+  ↓libelle_service [variables.RequestableVariable]: 
+    description: LibelleService du portefeuille
+↓T_Membre_Retirer [transactions.SqlTransaction]: 
+  comment: Desactive l appartenance. Refuse le retrait du dernier pilote de perimetre.
+  sqlQuery: |
+    WITH acteur AS (
+        SELECT m.code_agent, m.role_session, m.pilote_communaute, m.role_local, m.id_communaute, m.id_perimetre
+        FROM "COE_Membre" m
+        WHERE m.actif = true AND UPPER(m.code_agent) = UPPER('{session_user}')
+        LIMIT 1
+    ),
+    cible AS (
+        SELECT m.code_agent, m.role_local, m.id_communaute, m.id_perimetre
+        FROM "COE_Membre" m
+        WHERE UPPER(m.code_agent) = UPPER('{code_agent}') AND m.actif = true
+        LIMIT 1
+    ),
+    verdict AS (
+        SELECT CASE
+            WHEN NOT EXISTS (SELECT 1 FROM acteur) THEN 'Action non autorisee'
+            WHEN NOT EXISTS (SELECT 1 FROM cible) THEN 'Membre introuvable'
+            WHEN NOT (
+                (SELECT role_session FROM acteur) = 'admin'
+                OR ((SELECT pilote_communaute FROM acteur) = true AND (SELECT id_communaute FROM acteur) = (SELECT id_communaute FROM cible))
+                OR ((SELECT role_local FROM acteur) = 'pilote' AND (SELECT id_perimetre FROM acteur) = (SELECT id_perimetre FROM cible))
+            ) THEN 'Action non autorisee'
+            WHEN (SELECT role_local FROM cible) = 'pilote'
+             AND (
+                SELECT count(*) FROM "COE_Membre" x
+                WHERE x.actif = true AND x.role_local = 'pilote' AND x.id_perimetre = (SELECT id_perimetre FROM cible)
+             ) <= 1
+            THEN 'Impossible : dernier pilote du perimetre'
+            ELSE ''
+        END AS message
+    ),
+    maj AS (
+        UPDATE "COE_Membre" m
+        SET actif = false
+        WHERE (SELECT message FROM verdict) = ''
+          AND UPPER(m.code_agent) = UPPER('{code_agent}')
+          AND m.actif = true
+        RETURNING m.code_agent
+    )
+    SELECT
+        CASE WHEN (SELECT message FROM verdict) = '' AND EXISTS (SELECT 1 FROM maj) THEN 'oui' ELSE 'non' END AS ok,
+        CASE
+            WHEN (SELECT message FROM verdict) <> '' THEN (SELECT message FROM verdict)
+            ELSE ''
+        END AS message,
+        COALESCE((SELECT code_agent FROM maj LIMIT 1), '') AS code_agent
+  ↓session_user [variables.RequestableVariable]: 
+    description: Acteur de session
+  ↓code_agent [variables.RequestableVariable]: 
+    description: Membre a retirer
+↓T_Membre_Role [transactions.SqlTransaction]: 
+  comment: Nomme membre, pilote de perimetre ou pilote de communaute.
+  sqlQuery: |
+    WITH acteur AS (
+        SELECT m.code_agent, m.role_session, m.pilote_communaute, m.id_communaute
+        FROM "COE_Membre" m
+        WHERE m.actif = true AND UPPER(m.code_agent) = UPPER('{session_user}')
+        LIMIT 1
+    ),
+    cible AS (
+        SELECT m.code_agent, m.role_local, m.id_communaute, m.id_perimetre
+        FROM "COE_Membre" m
+        WHERE UPPER(m.code_agent) = UPPER('{code_agent}') AND m.actif = true
+        LIMIT 1
+    ),
+    verdict AS (
+        SELECT CASE
+            WHEN NOT EXISTS (SELECT 1 FROM acteur) THEN 'Action non autorisee'
+            WHEN NOT EXISTS (SELECT 1 FROM cible) THEN 'Membre introuvable'
+            WHEN '{role}' NOT IN ('membre', 'pilote_perimetre', 'pilote_communaute') THEN 'Role invalide'
+            WHEN NOT (
+                (SELECT role_session FROM acteur) = 'admin'
+                OR ((SELECT pilote_communaute FROM acteur) = true AND (SELECT id_communaute FROM acteur) = (SELECT id_communaute FROM cible))
+            ) THEN 'Seul le pilote de la communaute peut nommer un pilote'
+            WHEN '{role}' = 'membre'
+             AND (SELECT role_local FROM cible) = 'pilote'
+             AND (
+                SELECT count(*) FROM "COE_Membre" x
+                WHERE x.actif = true AND x.role_local = 'pilote' AND x.id_perimetre = (SELECT id_perimetre FROM cible)
+             ) <= 1
+            THEN 'Impossible : dernier pilote du perimetre'
+            ELSE ''
+        END AS message
+    ),
+    maj AS (
+        UPDATE "COE_Membre" m
+        SET role_local = CASE WHEN '{role}' IN ('pilote_perimetre', 'pilote_communaute') THEN 'pilote' ELSE 'membre' END,
+            pilote_communaute = CASE WHEN '{role}' = 'pilote_communaute' THEN true ELSE false END
+        WHERE (SELECT message FROM verdict) = ''
+          AND UPPER(m.code_agent) = UPPER('{code_agent}')
+          AND m.actif = true
+        RETURNING m.code_agent
+    )
+    SELECT
+        CASE WHEN (SELECT message FROM verdict) = '' AND EXISTS (SELECT 1 FROM maj) THEN 'oui' ELSE 'non' END AS ok,
+        CASE WHEN (SELECT message FROM verdict) <> '' THEN (SELECT message FROM verdict) ELSE '' END AS message,
+        COALESCE((SELECT code_agent FROM maj LIMIT 1), '') AS code_agent
+  ↓session_user [variables.RequestableVariable]: 
+    description: Acteur de session
+  ↓code_agent [variables.RequestableVariable]: 
+    description: Membre
+  ↓role [variables.RequestableVariable]: 
+    description: membre, pilote_perimetre ou pilote_communaute
+↓T_Pilote_Domaines [transactions.SqlTransaction]: 
+  comment: Domaines du perimetre, si l acteur peut le piloter.
+  sqlQuery: |
+    SELECT d.id, d.libelle, COALESCE(d.tone, '') AS tone, d.id_perimetre
+    FROM "COE_Domaine" d
+    WHERE d.id_perimetre = '{id_perimetre}'
+      AND (
+        EXISTS (
+            SELECT 1 FROM "COE_Membre" a
+            WHERE a.actif = true
+              AND UPPER(a.code_agent) = UPPER('{session_user}')
+              AND (
+                a.role_session = 'admin'
+                OR (a.pilote_communaute = true AND a.id_communaute = (SELECT c.parent_id FROM "COE_Communaute" c WHERE c.id = '{id_perimetre}'))
+                OR (a.role_local = 'pilote' AND a.id_perimetre = '{id_perimetre}')
+              )
+        )
+    )
+    ORDER BY d.libelle
+  ↓session_user [variables.RequestableVariable]: 
+    description: Acteur de session
+  ↓id_perimetre [variables.RequestableVariable]: 
+    description: Perimetre
+↓T_Pilote_Termes [transactions.SqlTransaction]: 
+  comment: Termes du perimetre, y compris propose et archive.
+  sqlQuery: |
+    SELECT
+        t.id,
+        t.libelle,
+        t.statut,
+        COALESCE(t.domaine_id, '') AS domaine_id,
+        COALESCE(d.libelle, '') AS domaine,
+        COALESCE(d.tone, '') AS tone,
+        t.id_perimetre
+    FROM "COE_Terme" t
+    LEFT JOIN "COE_Domaine" d ON d.id = t.domaine_id
+    WHERE t.id_perimetre = '{id_perimetre}'
+      AND (
+        EXISTS (
+            SELECT 1 FROM "COE_Membre" a
+            WHERE a.actif = true
+              AND UPPER(a.code_agent) = UPPER('{session_user}')
+              AND (
+                a.role_session = 'admin'
+                OR (a.pilote_communaute = true AND a.id_communaute = (SELECT c.parent_id FROM "COE_Communaute" c WHERE c.id = '{id_perimetre}'))
+                OR (a.role_local = 'pilote' AND a.id_perimetre = '{id_perimetre}')
+              )
+        )
+    )
+    ORDER BY t.statut, d.libelle, t.libelle
+  ↓session_user [variables.RequestableVariable]: 
+    description: Acteur de session
+  ↓id_perimetre [variables.RequestableVariable]: 
+    description: Perimetre
+↓T_Domaine_Enregistrer [transactions.SqlTransaction]: 
+  comment: Cree ou renomme un domaine du perimetre.
+  sqlQuery: |
+    WITH droit AS (
+        SELECT CASE WHEN (
+        EXISTS (
+            SELECT 1 FROM "COE_Membre" a
+            WHERE a.actif = true
+              AND UPPER(a.code_agent) = UPPER('{session_user}')
+              AND (
+                a.role_session = 'admin'
+                OR (a.pilote_communaute = true AND a.id_communaute = (SELECT c.parent_id FROM "COE_Communaute" c WHERE c.id = '{id_perimetre}'))
+                OR (a.role_local = 'pilote' AND a.id_perimetre = '{id_perimetre}')
+              )
+        )
+    ) THEN 'oui' ELSE 'non' END AS ok
+    ),
+    ins AS (
+        INSERT INTO "COE_Domaine" (id, id_perimetre, libelle, tone)
+        SELECT
+            'd-' || substr(md5(random()::text || clock_timestamp()::text), 1, 10),
+            '{id_perimetre}',
+            btrim('{libelle}'),
+            'sky'
+        WHERE (SELECT ok FROM droit) = 'oui'
+          AND '{action}' = 'creer'
+          AND length(btrim('{libelle}')) > 0
+          AND EXISTS (SELECT 1 FROM "COE_Communaute" p WHERE p.id = '{id_perimetre}' AND p.parent_id IS NOT NULL)
+          AND NOT EXISTS (
+            SELECT 1 FROM "COE_Domaine" d
+            WHERE d.id_perimetre = '{id_perimetre}'
+              AND lower(btrim(d.libelle)) = lower(btrim('{libelle}'))
+          )
+        RETURNING id
+    ),
+    maj AS (
+        UPDATE "COE_Domaine" d
+        SET libelle = btrim('{libelle}')
+        WHERE (SELECT ok FROM droit) = 'oui'
+          AND '{action}' = 'renommer'
+          AND d.id = '{node_id}'
+          AND d.id_perimetre = '{id_perimetre}'
+          AND length(btrim('{libelle}')) > 0
+        RETURNING d.id
+    )
+    SELECT
+        CASE WHEN (SELECT ok FROM droit) = 'oui' AND (EXISTS (SELECT 1 FROM ins) OR EXISTS (SELECT 1 FROM maj)) THEN 'oui' ELSE 'non' END AS ok,
+        CASE
+            WHEN (SELECT ok FROM droit) <> 'oui' THEN 'Action non autorisee'
+            WHEN length(btrim('{libelle}')) = 0 THEN 'Saisissez un nom'
+            WHEN NOT (EXISTS (SELECT 1 FROM ins) OR EXISTS (SELECT 1 FROM maj)) THEN 'Enregistrement refuse'
+            ELSE ''
+        END AS message,
+        COALESCE((SELECT id FROM ins LIMIT 1), (SELECT id FROM maj LIMIT 1), '') AS node_id
+  ↓session_user [variables.RequestableVariable]: 
+    description: Acteur de session
+  ↓action [variables.RequestableVariable]: 
+    description: creer ou renommer
+  ↓node_id [variables.RequestableVariable]: 
+    description: Domaine a renommer
+  ↓id_perimetre [variables.RequestableVariable]: 
+    description: Perimetre
+  ↓libelle [variables.RequestableVariable]: 
+    description: Nom du domaine
+↓T_Terme_Statut [transactions.SqlTransaction]: 
+  comment: Passe un terme a valide, refuse ou archive.
+  sqlQuery: |
+    WITH terme AS (
+        SELECT t.id, t.id_perimetre
+        FROM "COE_Terme" t
+        WHERE t.id = '{terme_id}'
+    ),
+    droit AS (
+        SELECT CASE WHEN EXISTS (
+            SELECT 1 FROM "COE_Membre" a
+            JOIN terme t ON true
+            JOIN "COE_Communaute" p ON p.id = t.id_perimetre
+            WHERE a.actif = true
+              AND UPPER(a.code_agent) = UPPER('{session_user}')
+              AND (
+                a.role_session = 'admin'
+                OR (a.pilote_communaute = true AND a.id_communaute = p.parent_id)
+                OR (a.role_local = 'pilote' AND a.id_perimetre = t.id_perimetre)
+              )
+        ) THEN 'oui' ELSE 'non' END AS ok
+    ),
+    maj AS (
+        UPDATE "COE_Terme" t
+        SET statut = '{statut}'
+        WHERE (SELECT ok FROM droit) = 'oui'
+          AND t.id = '{terme_id}'
+          AND '{statut}' IN ('valide', 'refuse', 'archive')
+        RETURNING t.id
+    )
+    SELECT
+        CASE WHEN EXISTS (SELECT 1 FROM maj) THEN 'oui' ELSE 'non' END AS ok,
+        CASE
+            WHEN '{statut}' NOT IN ('valide', 'refuse', 'archive') THEN 'Statut invalide'
+            WHEN (SELECT ok FROM droit) <> 'oui' THEN 'Action non autorisee'
+            WHEN NOT EXISTS (SELECT 1 FROM terme) THEN 'Appetence introuvable'
+            ELSE ''
+        END AS message,
+        COALESCE((SELECT id FROM maj LIMIT 1), '') AS terme_id
+  ↓session_user [variables.RequestableVariable]: 
+    description: Acteur de session
+  ↓terme_id [variables.RequestableVariable]: 
+    description: Terme
+  ↓statut [variables.RequestableVariable]: 
+    description: valide, refuse ou archive
+↓T_Terme_Deplacer [transactions.SqlTransaction]: 
+  comment: Deplace un terme dans un domaine du meme perimetre.
+  sqlQuery: |
+    WITH terme AS (
+        SELECT t.id, t.id_perimetre FROM "COE_Terme" t WHERE t.id = '{terme_id}'
+    ),
+    droit AS (
+        SELECT CASE WHEN EXISTS (
+            SELECT 1 FROM "COE_Membre" a
+            JOIN terme t ON true
+            JOIN "COE_Communaute" p ON p.id = t.id_perimetre
+            WHERE a.actif = true
+              AND UPPER(a.code_agent) = UPPER('{session_user}')
+              AND (
+                a.role_session = 'admin'
+                OR (a.pilote_communaute = true AND a.id_communaute = p.parent_id)
+                OR (a.role_local = 'pilote' AND a.id_perimetre = t.id_perimetre)
+              )
+        ) THEN 'oui' ELSE 'non' END AS ok
+    ),
+    maj AS (
+        UPDATE "COE_Terme" t
+        SET domaine_id = '{domaine_id}'
+        WHERE (SELECT ok FROM droit) = 'oui'
+          AND t.id = '{terme_id}'
+          AND EXISTS (
+            SELECT 1 FROM "COE_Domaine" d
+            WHERE d.id = '{domaine_id}' AND d.id_perimetre = t.id_perimetre
+          )
+        RETURNING t.id
+    )
+    SELECT
+        CASE WHEN EXISTS (SELECT 1 FROM maj) THEN 'oui' ELSE 'non' END AS ok,
+        CASE
+            WHEN (SELECT ok FROM droit) <> 'oui' THEN 'Action non autorisee'
+            WHEN NOT EXISTS (SELECT 1 FROM maj) THEN 'Domaine invalide'
+            ELSE ''
+        END AS message,
+        COALESCE((SELECT id FROM maj LIMIT 1), '') AS terme_id
+  ↓session_user [variables.RequestableVariable]: 
+    description: Acteur de session
+  ↓terme_id [variables.RequestableVariable]: 
+    description: Terme
+  ↓domaine_id [variables.RequestableVariable]: 
+    description: Domaine cible
+↓T_Terme_Creer [transactions.SqlTransaction]: 
+  comment: Cree une appetence validee dans le perimetre.
+  sqlQuery: |
+    WITH droit AS (
+        SELECT CASE WHEN (
+        EXISTS (
+            SELECT 1 FROM "COE_Membre" a
+            WHERE a.actif = true
+              AND UPPER(a.code_agent) = UPPER('{session_user}')
+              AND (
+                a.role_session = 'admin'
+                OR (a.pilote_communaute = true AND a.id_communaute = (SELECT c.parent_id FROM "COE_Communaute" c WHERE c.id = '{id_perimetre}'))
+                OR (a.role_local = 'pilote' AND a.id_perimetre = '{id_perimetre}')
+              )
+        )
+    ) THEN 'oui' ELSE 'non' END AS ok
+    ),
+    ins AS (
+        INSERT INTO "COE_Terme" (id, id_perimetre, libelle, statut, domaine_id)
+        SELECT
+            't-' || substr(md5(random()::text || clock_timestamp()::text), 1, 12),
+            '{id_perimetre}',
+            btrim('{libelle}'),
+            'valide',
+            NULLIF('{domaine_id}', '')
+        WHERE (SELECT ok FROM droit) = 'oui'
+          AND length(btrim('{libelle}')) > 0
+          AND EXISTS (
+            SELECT 1 FROM "COE_Domaine" d
+            WHERE d.id = '{domaine_id}' AND d.id_perimetre = '{id_perimetre}'
+          )
+          AND NOT EXISTS (
+            SELECT 1 FROM "COE_Terme" t
+            WHERE t.id_perimetre = '{id_perimetre}'
+              AND t.statut <> 'archive'
+              AND lower(regexp_replace(btrim(t.libelle), '[[:space:]]+', ' ', 'g'))
+                  = lower(regexp_replace(btrim('{libelle}'), '[[:space:]]+', ' ', 'g'))
+          )
+        RETURNING id
+    )
+    SELECT
+        CASE WHEN EXISTS (SELECT 1 FROM ins) THEN 'oui' ELSE 'non' END AS ok,
+        CASE
+            WHEN (SELECT ok FROM droit) <> 'oui' THEN 'Action non autorisee'
+            WHEN length(btrim('{libelle}')) = 0 THEN 'Saisissez un nom'
+            WHEN NOT EXISTS (SELECT 1 FROM ins) THEN 'Enregistrement refuse'
+            ELSE ''
+        END AS message,
+        COALESCE((SELECT id FROM ins LIMIT 1), '') AS terme_id
+  ↓session_user [variables.RequestableVariable]: 
+    description: Acteur de session
+  ↓id_perimetre [variables.RequestableVariable]: 
+    description: Perimetre
+  ↓domaine_id [variables.RequestableVariable]: 
+    description: Domaine
+  ↓libelle [variables.RequestableVariable]: 
+    description: Nom de l appetence
+↓T_Terme_Renommer [transactions.SqlTransaction]: 
+  comment: Renomme une appetence du perimetre.
+  sqlQuery: |
+    WITH terme AS (
+        SELECT t.id, t.id_perimetre
+        FROM "COE_Terme" t
+        WHERE t.id = '{terme_id}'
+    ),
+    droit AS (
+        SELECT CASE WHEN EXISTS (
+            SELECT 1 FROM "COE_Membre" a
+            JOIN terme t ON true
+            JOIN "COE_Communaute" p ON p.id = t.id_perimetre
+            WHERE a.actif = true
+              AND UPPER(a.code_agent) = UPPER('{session_user}')
+              AND (
+                a.role_session = 'admin'
+                OR (a.pilote_communaute = true AND a.id_communaute = p.parent_id)
+                OR (a.role_local = 'pilote' AND a.id_perimetre = t.id_perimetre)
+              )
+        ) THEN 'oui' ELSE 'non' END AS ok
+    ),
+    maj AS (
+        UPDATE "COE_Terme" t
+        SET libelle = btrim('{libelle}')
+        WHERE (SELECT ok FROM droit) = 'oui'
+          AND t.id = '{terme_id}'
+          AND length(btrim('{libelle}')) > 0
+          AND NOT EXISTS (
+            SELECT 1 FROM "COE_Terme" o
+            WHERE o.id_perimetre = t.id_perimetre
+              AND o.id <> t.id
+              AND o.statut <> 'archive'
+              AND lower(btrim(o.libelle)) = lower(btrim('{libelle}'))
+          )
+        RETURNING t.id
+    )
+    SELECT
+        CASE WHEN EXISTS (SELECT 1 FROM maj) THEN 'oui' ELSE 'non' END AS ok,
+        CASE
+            WHEN (SELECT ok FROM droit) <> 'oui' THEN 'Action non autorisee'
+            WHEN length(btrim('{libelle}')) = 0 THEN 'Saisissez un nom'
+            WHEN NOT EXISTS (SELECT 1 FROM terme) THEN 'Appetence introuvable'
+            WHEN NOT EXISTS (SELECT 1 FROM maj) THEN 'Enregistrement refuse'
+            ELSE ''
+        END AS message,
+        COALESCE((SELECT id FROM maj LIMIT 1), '') AS terme_id
+  ↓session_user [variables.RequestableVariable]: 
+    description: Acteur de session
+  ↓terme_id [variables.RequestableVariable]: 
+    description: Terme
+  ↓libelle [variables.RequestableVariable]: 
+    description: Nouveau nom

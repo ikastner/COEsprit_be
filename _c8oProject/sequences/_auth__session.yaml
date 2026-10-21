@@ -1,0 +1,249 @@
+accessibility: Private
+comment: Acteur connecte, lu dans la session ouverte par lib_common_be.auth__login. Erreur 401 si aucune session.
+↓Session [steps.SequenceStep-1795300000001]: 
+  sourceSequence: lib_common_be.auth__get__in__session
+↓sessionDoc [steps.JsonSourceStep-1795300000002]: 
+  sourceDefinition: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+      - com.twinsoft.convertigo.beans.common.XMLVector: 
+        - java.lang.String: 
+          - ↑value: 1795300000001
+        - java.lang.String: 
+          - ↑value: ./document
+  variableName: sessionDoc
+↓Identifier [steps.SimpleStep-1795300000003]: 
+  expression: |
+    'function txt(v) {
+        if (v == null) return "";
+        var s = String(v).trim();
+        return (s === "undefined" || s === "null") ? "" : s;
+    }
+    var d = sessionDoc;
+    if (d && d.document) d = d.document;
+    var u = (d && d.user) ? d.user : null;
+    codeActeur = "";
+    nomActeur = "";
+    if (d && !d.error && u) {
+        codeActeur = txt(u.codeAgent);
+        if (codeActeur === "") codeActeur = txt(d.authenticatedUserID);
+        nomActeur = txt(u.displayName);
+        if (nomActeur === "") nomActeur = (txt(u.prenom) + " " + txt(u.nom)).trim();
+    }
+    if (nomActeur === "") nomActeur = codeActeur;
+    var q = String.fromCharCode(39);
+    code = codeActeur.split(q).join(q + q).split(String.fromCharCode(123)).join("").split(String.fromCharCode(125)).join("");
+    '
+↓Si_anonyme [steps.IfThenElseStep-1795300000004]: 
+  condition: codeActeur === ""
+  ↓jThen [steps.ThenStep-1795300000005]: 
+    ↓Erreur [steps.XMLErrorStep-1795300000006]: 
+      code: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: PLAIN
+            - →→: 401
+      message: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: PLAIN
+            - →→: 'Non authentifié : veuillez vous reconnecter.'
+    ↓Return [steps.ReturnStep-1795300000007]: 
+  ↓jElse [steps.ElseStep-1795300000008]: 
+↓Resoudre_ligne [steps.TransactionStep-1795300000020]: 
+  comment: La session porte le code agent AD (ou la cle en mode test) ; la ligne est retrouvee par Cle ou CleExterne, sans tenir compte de la casse.
+  sourceTransaction: COEsprit_be.RadConnector.T_Membre_Resoudre
+  ↓code [variables.StepVariable-1795300000021]: 
+    description: code
+↓ligneRaw [steps.JsonSourceStep-1795300000022]: 
+  sourceDefinition: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+      - com.twinsoft.convertigo.beans.common.XMLVector: 
+        - java.lang.String: 
+          - ↑value: 1795300000020
+        - java.lang.String: 
+          - ↑value: ./document/sql_output/row
+  variableName: ligneRaw
+↓Appliquer_ligne [steps.SimpleStep-1795300000023]: 
+  expression: |
+    'var rows = [];
+    if (typeof ligneRaw !== "undefined" && ligneRaw != null) rows = (typeof ligneRaw.length === "number") ? ligneRaw : [ligneRaw];
+    codes = "";
+    idCommunaute = "";
+    idPerimetre = "";
+    if (rows.length > 0 && rows[0].cle != null && String(rows[0].cle) !== "") {
+        var nomLigne = String(rows[0].nom || "").trim();
+        if (!nomActeur || nomActeur === codeActeur) nomActeur = nomLigne || String(rows[0].cle);
+        codes = String(rows[0].cle_externe || "").trim();
+        codeActeur = String(rows[0].cle);
+        idCommunaute = String(rows[0].id_communaute || "").trim();
+        idPerimetre = String(rows[0].id_perimetre || "").trim();
+    }
+    '
+↓Lire_annuaire [steps.TransactionStep-1797100000010]: 
+  comment: Annuaire RET_Agent_Planning (commondb). Pas de jointure possible avec cvtg_rad.
+  sourceTransaction: COEsprit_be.CommonConnector.T_Agent_Lire
+  ↓codes [variables.StepVariable-1797100000011]: 
+    description: codes
+↓Annuaire_reset [steps.SimpleStep-1797100000019]: 
+  expression: |
+    'annuaireRaw = null;
+    '
+↓Si_annuaire [steps.IfExistStep-1797100000021]: 
+  sourceDefinition: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+      - com.twinsoft.convertigo.beans.common.XMLVector: 
+        - java.lang.String: 
+          - ↑value: 1797100000010
+        - java.lang.String: 
+          - ↑value: ./document/sql_output/row
+  ↓annuaireRaw [steps.JsonSourceStep-1797100000012]: 
+    sourceDefinition: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+        - com.twinsoft.convertigo.beans.common.XMLVector: 
+          - java.lang.String: 
+            - ↑value: 1797100000010
+          - java.lang.String: 
+            - ↑value: ./document/sql_output/row
+    variableName: annuaireRaw
+↓Controler_annuaire [steps.SimpleStep-1797100000013]: 
+  comment: Hors SI, le membre COE_Membre suffit. En SI, le compte doit exister dans l'annuaire et ne pas être désactivé.
+  expression: |
+    'var ag = [];
+    if (typeof annuaireRaw !== "undefined" && annuaireRaw != null) ag = (typeof annuaireRaw.length === "number") ? annuaireRaw : [annuaireRaw];
+    var horsSi = String(authHorsSI).toLowerCase() == "true";
+    var dansAnnuaire = ag.length > 0 && ag[0].code_agent != null && String(ag[0].code_agent) !== "";
+    refusAcces = "";
+    if (codes === "") refusAcces = "Accès refusé : aucun membre CO''Esprit n’est associé à ce compte.";
+    else if (!horsSi && !dansAnnuaire) refusAcces = "Accès refusé : compte absent de l’annuaire.";
+    else if (dansAnnuaire && String(ag[0].desactive).toLowerCase() === "true") refusAcces = "Accès refusé : compte désactivé.";
+    else if (dansAnnuaire) {
+        var prenom = String(ag[0].prenom || "").trim();
+        if (prenom) nomActeur = prenom;
+    }
+    '
+↓Si_refus [steps.IfThenElseStep-1797100000014]: 
+  condition: refusAcces !== ""
+  ↓jThen [steps.ThenStep-1797100000015]: 
+    ↓Erreur [steps.XMLErrorStep-1797100000016]: 
+      code: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: PLAIN
+            - →→: 403
+      message: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: JS
+            - →→: refusAcces
+    ↓Return [steps.ReturnStep-1797100000017]: 
+  ↓jElse [steps.ElseStep-1797100000018]: 
+↓Get_coeRoleTest [steps.SessionGetStep-1791387220001]: 
+  comment: Role COE choisi en Auth_Hors_SI (session). Ignore hors mode local.
+  key: coeRoleTest
+  output: false
+↓coeRoleTestSession [steps.SimpleSourceStep-1791387220002]: 
+  sourceDefinition: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+      - com.twinsoft.convertigo.beans.common.XMLVector: 
+        - java.lang.String: 
+          - ↑value: 1791387220001
+        - java.lang.String: 
+          - ↑value: ./expression/text()
+  variableName: coeRoleTestSession
+↓Role_init [steps.SimpleStep-1795500000003]: 
+  comment: 'SI : droits COE_LigneRole. Hors SI (authHorsSI=true) : roleTest = role choisi au login.'
+  expression: |
+    'roleTest = "";
+    if (String(authHorsSI).toLowerCase() == "true") {
+        var rt = String(typeof coeRoleTestSession === "undefined" || coeRoleTestSession == null ? "" : coeRoleTestSession).trim().toUpperCase();
+        if (rt === "MEMBRE" || rt === "PILOTE" || rt === "ADMIN") roleTest = rt;
+    }
+    '
+↓acteur [steps.JsonObjectStep-1795300000009]: 
+  key: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: PLAIN
+        - →→: acteur
+  ↓cle [steps.JsonFieldStep-1795300000010]: 
+    key: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: cle
+    value: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: JS
+          - →→: codeActeur
+  ↓nom [steps.JsonFieldStep-1795300000011]: 
+    key: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: nom
+    value: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: JS
+          - →→: nomActeur
+  ↓id_communaute [steps.JsonFieldStep-1795300000012]: 
+    key: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: id_communaute
+    value: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: JS
+          - →→: idCommunaute
+  ↓id_perimetre [steps.JsonFieldStep-1795300000013]: 
+    key: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: id_perimetre
+    value: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: JS
+          - →→: idPerimetre
+  ↓roleTest [steps.JsonFieldStep-1795500000008]: 
+    key: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: roleTest
+    value: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: JS
+          - →→: roleTest
+↓authHorsSI [variables.RequestableVariable-1791387220003]: 
+  description: Variable serveur (defaut false). true = login hors SI (Mac). false = LDAP SI (PC). Masquee au client.
+  value: 
+    - ↑ciphered: true
+    - ↑traceable: false
+    - →→: x07e7020a82c9c95297cb245bfdafd8a6
+  visibility: '-1'

@@ -1,0 +1,304 @@
+comment: Appétences et site de l'utilisateur connecté, pour les comparer sur chaque fiche consultée.
+↓Auth_session [steps.SequenceStep-1798000600001]: 
+  sourceSequence: COEsprit_be._auth__session
+↓Si_non_connecte [steps.IfExistStep-1798000600002]: 
+  sourceDefinition: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+      - com.twinsoft.convertigo.beans.common.XMLVector: 
+        - java.lang.String: 
+          - ↑value: 1798000600001
+        - java.lang.String: 
+          - ↑value: ./document/error
+  ↓Erreur [steps.XMLErrorStep-1798000600003]: 
+    code: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: 401
+    message: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: 'Non authentifié : veuillez vous reconnecter.'
+  ↓Return [steps.ReturnStep-1798000600004]: 
+↓acteurSession [steps.SimpleSourceStep-1798000600005]: 
+  sourceDefinition: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+      - com.twinsoft.convertigo.beans.common.XMLVector: 
+        - java.lang.String: 
+          - ↑value: 1798000600001
+        - java.lang.String: 
+          - ↑value: ./document/acteur/cle/text()
+  variableName: acteurSession
+↓acteurSession1 [steps.JsonFieldStep-1792509867545]: 
+  key: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: PLAIN
+        - →→: acteurSession
+  value: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: JS
+        - →→: acteurSession
+↓Lire_fiche [steps.TransactionStep-1798000600010]: 
+  output: true
+  sourceTransaction: COEsprit_be.RadConnector.T_Fiche_Lire
+  ↓user_id [variables.StepVariable-1798000600011]: 
+    sourceDefinition: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+        - com.twinsoft.convertigo.beans.common.XMLVector: 
+          - java.lang.String: 
+            - ↑value: 1792509867545
+          - java.lang.String: 
+            - ↑value: ./text()
+    value: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: JS
+          - →→: acteurSession
+↓Si_sql_fiche [steps.IfExistStep-1798000600012]: 
+  sourceDefinition: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+      - com.twinsoft.convertigo.beans.common.XMLVector: 
+        - java.lang.String: 
+          - ↑value: 1798000600010
+        - java.lang.String: 
+          - ↑value: ./document/error
+  ↓Erreur_sql [steps.XMLErrorStep-1798000600013]: 
+    code: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: 500
+    details: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: SOURCE
+          - com.twinsoft.convertigo.beans.common.XMLVector: 
+            - java.lang.String: 
+              - ↑value: 1798000600010
+            - java.lang.String: 
+              - ↑value: ./document/error/message/text()
+    message: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: Erreur lors de la lecture de la fiche connectée
+  ↓Return [steps.ReturnStep-1798000600014]: 
+↓Lire_appetences [steps.TransactionStep-1798000600020]: 
+  output: true
+  sourceTransaction: COEsprit_be.RadConnector.T_Fiche_Appetences
+  ↓user_id [variables.StepVariable-1798000600021]: 
+    sourceDefinition: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+        - com.twinsoft.convertigo.beans.common.XMLVector: 
+          - java.lang.String: 
+            - ↑value: 1792509867545
+          - java.lang.String: 
+            - ↑value: ./text()
+    value: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: JS
+          - →→: acteurSession
+↓Si_sql_appetences [steps.IfExistStep-1798000600022]: 
+  sourceDefinition: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+      - com.twinsoft.convertigo.beans.common.XMLVector: 
+        - java.lang.String: 
+          - ↑value: 1798000600020
+        - java.lang.String: 
+          - ↑value: ./document/error
+  ↓Erreur_sql [steps.XMLErrorStep-1798000600023]: 
+    code: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: 500
+    details: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: SOURCE
+          - com.twinsoft.convertigo.beans.common.XMLVector: 
+            - java.lang.String: 
+              - ↑value: 1798000600020
+            - java.lang.String: 
+              - ↑value: ./document/error/message/text()
+    message: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: Erreur lors de la lecture des appétences
+  ↓Return [steps.ReturnStep-1798000600024]: 
+↓ligne [steps.JsonSourceStep-1798000600030]: 
+  sourceDefinition: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+      - com.twinsoft.convertigo.beans.common.XMLVector: 
+        - java.lang.String: 
+          - ↑value: 1798000600010
+        - java.lang.String: 
+          - ↑value: ./document/sql_output/row
+  variableName: ligne
+↓Normaliser [steps.SimpleStep-1798000600031]: 
+  expression: |
+    'var row = (typeof ligne === "undefined" || ligne == null) ? null : ligne;
+    if (row && typeof row.length === "number") row = row.length ? row[0] : null;
+    ficheLigne = (row && row.user_id != null && String(row.user_id) !== "") ? row : null;
+    userMoi = String(acteurSession == null ? "" : acteurSession);
+    siteMoi = (ficheLigne && ficheLigne.site != null) ? String(ficheLigne.site) : "";
+    '
+↓moi [steps.JsonObjectStep-1798000600040]: 
+  key: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: PLAIN
+        - →→: moi
+  ↓user_id [steps.JsonFieldStep-1798000600041]: 
+    key: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: user_id
+    value: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: JS
+          - →→: userMoi
+  ↓site [steps.JsonFieldStep-1798000600042]: 
+    key: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: site
+    value: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: JS
+          - →→: siteMoi
+  ↓appetences [steps.JsonArrayStep-1798000600050]: 
+    key: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: appetences
+    ↓Iterator [steps.IteratorStep-1798000600051]: 
+      sourceDefinition: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+          - com.twinsoft.convertigo.beans.common.XMLVector: 
+            - java.lang.String: 
+              - ↑value: 1798000600020
+            - java.lang.String: 
+              - ↑value: ./document/sql_output/row
+      ↓item [steps.JsonObjectStep-1798000600052]: 
+        ↓id [steps.JsonFieldStep-1798000600060]: 
+          key: 
+            - xmlizable: 
+              - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+              - SmartType: 
+                - ↑mode: PLAIN
+                - →→: id
+          value: 
+            - xmlizable: 
+              - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+              - SmartType: 
+                - ↑mode: SOURCE
+                - com.twinsoft.convertigo.beans.common.XMLVector: 
+                  - java.lang.String: 
+                    - ↑value: 1798000600051
+                  - java.lang.String: 
+                    - ↑value: ./id/text()
+        ↓libelle [steps.JsonFieldStep-1798000600061]: 
+          key: 
+            - xmlizable: 
+              - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+              - SmartType: 
+                - ↑mode: PLAIN
+                - →→: libelle
+          value: 
+            - xmlizable: 
+              - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+              - SmartType: 
+                - ↑mode: SOURCE
+                - com.twinsoft.convertigo.beans.common.XMLVector: 
+                  - java.lang.String: 
+                    - ↑value: 1798000600051
+                  - java.lang.String: 
+                    - ↑value: ./libelle/text()
+        ↓domaine_id [steps.JsonFieldStep-1798000600062]: 
+          key: 
+            - xmlizable: 
+              - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+              - SmartType: 
+                - ↑mode: PLAIN
+                - →→: domaine_id
+          value: 
+            - xmlizable: 
+              - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+              - SmartType: 
+                - ↑mode: SOURCE
+                - com.twinsoft.convertigo.beans.common.XMLVector: 
+                  - java.lang.String: 
+                    - ↑value: 1798000600051
+                  - java.lang.String: 
+                    - ↑value: ./domaine_id/text()
+        ↓domaine [steps.JsonFieldStep-1798000600063]: 
+          key: 
+            - xmlizable: 
+              - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+              - SmartType: 
+                - ↑mode: PLAIN
+                - →→: domaine
+          value: 
+            - xmlizable: 
+              - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+              - SmartType: 
+                - ↑mode: SOURCE
+                - com.twinsoft.convertigo.beans.common.XMLVector: 
+                  - java.lang.String: 
+                    - ↑value: 1798000600051
+                  - java.lang.String: 
+                    - ↑value: ./domaine/text()
+        ↓tone [steps.JsonFieldStep-1798000600064]: 
+          key: 
+            - xmlizable: 
+              - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+              - SmartType: 
+                - ↑mode: PLAIN
+                - →→: tone
+          value: 
+            - xmlizable: 
+              - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+              - SmartType: 
+                - ↑mode: SOURCE
+                - com.twinsoft.convertigo.beans.common.XMLVector: 
+                  - java.lang.String: 
+                    - ↑value: 1798000600051
+                  - java.lang.String: 
+                    - ↑value: ./tone/text()

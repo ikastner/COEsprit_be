@@ -1,8 +1,34 @@
 ↑convertigo: 8.0.0.m006
 ↓COEsprit_be [core.Project]: 
-  comment: Mashup Sequencer project
-  contextTimeout: 59
+  comment: CO Esprit - Backend (auth, fiches, referentiel, recherche)
+  contextTimeout: 800
   corsOrigin: =Origin
-  httpSessionTimeout: 60
+  httpSessionTimeout: 800
+  version: 0.1.0
+  ↓CommonConnector [connectors.SqlConnector]: 🗏 connectors/CommonConnector.yaml
+  ↓RadConnector [connectors.SqlConnector]: 🗏 connectors/RadConnector.yaml
   ↓void [connectors.SqlConnector]: 🗏 connectors/void.yaml
-  ↓NewSequence [sequences.GenericSequence]: 🗏 sequences/NewSequence.yaml
+  ↓_auth__session [sequences.GenericSequence]: 🗏 sequences/_auth__session.yaml
+  ↓Auth_Login [sequences.GenericSequence]: 🗏 sequences/Auth_Login.yaml
+  ↓Fiche_Enregistrer [sequences.GenericSequence]: 🗏 sequences/Fiche_Enregistrer.yaml
+  ↓Fiche_Indicateurs [sequences.GenericSequence]: 🗏 sequences/Fiche_Indicateurs.yaml
+  ↓Fiche_Lire [sequences.GenericSequence]: 🗏 sequences/Fiche_Lire.yaml
+  ↓Get_Auth_Hors_SI [sequences.GenericSequence]: 🗏 sequences/Get_Auth_Hors_SI.yaml
+  ↓Mes_Appetences [sequences.GenericSequence]: 🗏 sequences/Mes_Appetences.yaml
+  ↓Recherche_Profils [sequences.GenericSequence]: 🗏 sequences/Recherche_Profils.yaml
+  ↓Referentiel_Lire [sequences.GenericSequence]: 🗏 sequences/Referentiel_Lire.yaml
+  ↓Terme_Proposer [sequences.GenericSequence]: 🗏 sequences/Terme_Proposer.yaml
+  ↓Terme_Creer [sequences.GenericSequence]: 🗏 sequences/Terme_Creer.yaml
+  ↓Terme_Renommer [sequences.GenericSequence]: 🗏 sequences/Terme_Renommer.yaml
+  ↓Terme_Deplacer [sequences.GenericSequence]: 🗏 sequences/Terme_Deplacer.yaml
+  ↓Terme_Statut [sequences.GenericSequence]: 🗏 sequences/Terme_Statut.yaml
+  ↓Domaine_Enregistrer [sequences.GenericSequence]: 🗏 sequences/Domaine_Enregistrer.yaml
+  ↓Referentiel_Pilote [sequences.GenericSequence]: 🗏 sequences/Referentiel_Pilote.yaml
+  ↓Membre_Role [sequences.GenericSequence]: 🗏 sequences/Membre_Role.yaml
+  ↓Membre_Retirer [sequences.GenericSequence]: 🗏 sequences/Membre_Retirer.yaml
+  ↓Membre_Ajouter [sequences.GenericSequence]: 🗏 sequences/Membre_Ajouter.yaml
+  ↓Structure_Enregistrer [sequences.GenericSequence]: 🗏 sequences/Structure_Enregistrer.yaml
+  ↓Pilotage_Lire [sequences.GenericSequence]: 🗏 sequences/Pilotage_Lire.yaml
+  ↓Agent_Chercher [sequences.GenericSequence]: 🗏 sequences/Agent_Chercher.yaml
+  ↓lib_common_be_reference [references.ProjectSchemaReference]: 
+    projectName: lib_common_be

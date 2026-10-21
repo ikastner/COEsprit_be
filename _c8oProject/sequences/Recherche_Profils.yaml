@@ -1,0 +1,85 @@
+comment: Recherche des profils de la communauté du membre connecté.
+↓Auth_session [steps.SequenceStep-1798000400001]: 
+  sourceSequence: COEsprit_be._auth__session
+↓Si_non_connecte [steps.IfExistStep-1798000400002]: 
+  sourceDefinition: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+      - com.twinsoft.convertigo.beans.common.XMLVector: 
+        - java.lang.String: 
+          - ↑value: 1798000400001
+        - java.lang.String: 
+          - ↑value: ./document/error
+  ↓Erreur [steps.XMLErrorStep-1798000400003]: 
+    code: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: 401
+    message: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: 'Non authentifié : veuillez vous reconnecter.'
+  ↓Return [steps.ReturnStep-1798000400004]: 
+↓Lire [steps.TransactionStep-1798000400010]: 
+  output: true
+  sourceTransaction: COEsprit_be.RadConnector.T_Recherche_Profils
+  ↓id_communaute [variables.StepVariable-1798000400016]: 
+    sourceDefinition: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+        - com.twinsoft.convertigo.beans.common.XMLVector: 
+          - java.lang.String: 
+            - ↑value: 1798000400001
+          - java.lang.String: 
+            - ↑value: ./document/acteur/id_communaute/text()
+  ↓q [variables.StepVariable-1798000400011]: 
+  ↓site [variables.StepVariable-1798000400012]: 
+  ↓libelle_poste [variables.StepVariable-1798000400018]: 
+  ↓entite [variables.StepVariable-1798000400019]: 
+  ↓perimetre [variables.StepVariable-1798000400013]: 
+  ↓domaine_id [variables.StepVariable-1798000400014]: 
+  ↓terme_id [variables.StepVariable-1798000400015]: 
+↓Si_sql [steps.IfExistStep-1798000400020]: 
+  sourceDefinition: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+      - com.twinsoft.convertigo.beans.common.XMLVector: 
+        - java.lang.String: 
+          - ↑value: 1798000400010
+        - java.lang.String: 
+          - ↑value: ./document/error
+  ↓Erreur_sql [steps.XMLErrorStep-1798000400021]: 
+    code: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: 500
+    details: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: SOURCE
+          - com.twinsoft.convertigo.beans.common.XMLVector: 
+            - java.lang.String: 
+              - ↑value: 1798000400010
+            - java.lang.String: 
+              - ↑value: ./document/error/message/text()
+    message: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: Erreur lors de la recherche des profils
+  ↓Return [steps.ReturnStep-1798000400022]: 
+↓q [variables.RequestableVariable-1798000400090]: 
+↓site [variables.RequestableVariable-1798000400091]: 
+↓libelle_poste [variables.RequestableVariable-1798000400095]: 
+↓entite [variables.RequestableVariable-1798000400096]: 
+↓perimetre [variables.RequestableVariable-1798000400092]: 
+↓domaine_id [variables.RequestableVariable-1798000400093]: 
+↓terme_id [variables.RequestableVariable-1798000400094]: 

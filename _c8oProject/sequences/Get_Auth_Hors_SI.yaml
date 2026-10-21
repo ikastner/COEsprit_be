@@ -1,0 +1,29 @@
+comment: 'Renvoie la variable serveur authHorsSI (defaut false). Active sur le Mac hors SI : login code agent + choix de role sans mot de passe. Sur le PC SI, laisser authHorsSI a false. Variable masquee au client.'
+↓data [steps.JsonObjectStep-1791387200010]: 
+  key: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: PLAIN
+        - →→: data
+  ↓authHorsSI [steps.JsonFieldStep-1791387200011]: 
+    key: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: authHorsSI
+    type: bool
+    value: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: JS
+          - →→: (""+authHorsSI).toLowerCase()=="true"
+↓authHorsSI [variables.RequestableVariable-1791387200012]: 
+  description: Variable serveur (defaut false). true = login hors SI (Mac). false = LDAP SI (PC). Masquee au client.
+  value: 
+    - ↑ciphered: true
+    - ↑traceable: false
+    - →→: x07e7020a82c9c95297cb245bfdafd8a6
+  visibility: '-1'

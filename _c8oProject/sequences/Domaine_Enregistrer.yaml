@@ -1,0 +1,159 @@
+comment: Cree ou renomme un domaine.
+↓Auth_session [steps.SequenceStep-1798100800001]: 
+  sourceSequence: COEsprit_be._auth__session
+↓Si_non_connecte [steps.IfExistStep-1798100800002]: 
+  sourceDefinition: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+      - com.twinsoft.convertigo.beans.common.XMLVector: 
+        - java.lang.String: 
+          - ↑value: 1798100800001
+        - java.lang.String: 
+          - ↑value: ./document/error
+  ↓Erreur [steps.XMLErrorStep-1798100800003]: 
+    code: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: 401
+    message: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: 'Non authentifié : veuillez vous reconnecter.'
+  ↓Return [steps.ReturnStep-1798100800004]: 
+↓acteurSession [steps.SimpleSourceStep-1798100800005]: 
+  sourceDefinition: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+      - com.twinsoft.convertigo.beans.common.XMLVector: 
+        - java.lang.String: 
+          - ↑value: 1798100800001
+        - java.lang.String: 
+          - ↑value: ./document/acteur/cle/text()
+  variableName: acteurSession
+↓Valider [steps.SimpleStep-1798100800006]: 
+  expression: |
+    'function cid(v) {
+      var s = String(v == null ? "" : v);
+      var out = "";
+      var i = 0;
+      for (i = 0; i < s.length; i++) {
+        var n = s.charCodeAt(i);
+        var ok = (n >= 48 && n <= 57) || (n >= 65 && n <= 90) || (n >= 97 && n <= 122) || n === 45 || n === 95;
+        if (ok) out += s.charAt(i);
+      }
+      return out;
+    }
+    function ctxt(v) {
+      var s = String(v == null ? "" : v);
+      var out = "";
+      var sp = false;
+      var i = 0;
+      for (i = 0; i < s.length; i++) {
+        var n = s.charCodeAt(i);
+        if (n === 39) { out += String.fromCharCode(39) + String.fromCharCode(39); sp = false; continue; }
+        if (n === 59 || n === 37 || n === 95 || n === 92 || n === 123 || n === 125) { sp = true; continue; }
+        if (n === 32 || n === 9 || n === 10 || n === 13) { sp = true; continue; }
+        if (sp && out.length) out += " ";
+        sp = false;
+        out += s.charAt(i);
+      }
+      return out;
+    }
+    sessionUser = cid(acteurSession);
+    session_user = sessionUser;
+    action = cid(typeof action === "undefined" ? "" : action);
+    node_id = cid(typeof node_id === "undefined" ? "" : node_id);
+    id_perimetre = cid(typeof id_perimetre === "undefined" ? "" : id_perimetre);
+    libelle = ctxt(typeof libelle === "undefined" ? "" : libelle);
+    errMsg = "";
+    if (sessionUser === "") errMsg = "Session invalide.";
+    else if (action !== "creer" && action !== "renommer") errMsg = "Action inconnue.";
+    else if (id_perimetre === "") errMsg = "Perimetre manquant.";
+    '
+↓Si_erreur [steps.IfThenElseStep-1798100800007]: 
+  condition: errMsg !== ""
+  ↓jThen [steps.ThenStep-1798100800008]: 
+    ↓Erreur [steps.XMLErrorStep-1798100800009]: 
+      code: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: PLAIN
+            - →→: 400
+      message: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: JS
+            - →→: errMsg
+    ↓Return [steps.ReturnStep-1798100800010]: 
+  ↓jElse [steps.ElseStep-1798100800011]: 
+    ↓Enregistrer [steps.TransactionStep-1798100800020]: 
+      output: true
+      sourceTransaction: COEsprit_be.RadConnector.T_Domaine_Enregistrer
+      ↓session_user [variables.StepVariable-1798100800021]: 
+        value: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: JS
+              - →→: sessionUser
+      ↓action [variables.StepVariable-1798100800022]: 
+        value: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: JS
+              - →→: action
+      ↓node_id [variables.StepVariable-1798100800023]: 
+        value: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: JS
+              - →→: node_id
+      ↓id_perimetre [variables.StepVariable-1798100800024]: 
+        value: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: JS
+              - →→: id_perimetre
+      ↓libelle [variables.StepVariable-1798100800025]: 
+        value: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: JS
+              - →→: libelle
+    ↓Si_sql_1798100800020 [steps.IfExistStep-1798100800026]: 
+      sourceDefinition: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+          - com.twinsoft.convertigo.beans.common.XMLVector: 
+            - java.lang.String: 
+              - ↑value: 1798100800020
+            - java.lang.String: 
+              - ↑value: ./document/error
+      ↓Erreur_sql [steps.XMLErrorStep-1798100800027]: 
+        code: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: PLAIN
+              - →→: 500
+        message: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: PLAIN
+              - →→: Erreur SQL
+      ↓Return [steps.ReturnStep-1798100800028]: 
+↓action [variables.RequestableVariable-1798100800090]: 
+↓node_id [variables.RequestableVariable-1798100800091]: 
+↓id_perimetre [variables.RequestableVariable-1798100800092]: 
+↓libelle [variables.RequestableVariable-1798100800093]: 

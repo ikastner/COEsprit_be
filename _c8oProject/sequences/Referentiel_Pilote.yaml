@@ -1,0 +1,170 @@
+comment: Domaines et termes d un perimetre, tous statuts.
+↓Auth_session [steps.SequenceStep-1798100700001]: 
+  sourceSequence: COEsprit_be._auth__session
+↓Si_non_connecte [steps.IfExistStep-1798100700002]: 
+  sourceDefinition: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+      - com.twinsoft.convertigo.beans.common.XMLVector: 
+        - java.lang.String: 
+          - ↑value: 1798100700001
+        - java.lang.String: 
+          - ↑value: ./document/error
+  ↓Erreur [steps.XMLErrorStep-1798100700003]: 
+    code: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: 401
+    message: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: 'Non authentifié : veuillez vous reconnecter.'
+  ↓Return [steps.ReturnStep-1798100700004]: 
+↓acteurSession [steps.SimpleSourceStep-1798100700005]: 
+  sourceDefinition: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+      - com.twinsoft.convertigo.beans.common.XMLVector: 
+        - java.lang.String: 
+          - ↑value: 1798100700001
+        - java.lang.String: 
+          - ↑value: ./document/acteur/cle/text()
+  variableName: acteurSession
+↓Valider [steps.SimpleStep-1798100700006]: 
+  expression: |
+    'function cid(v) {
+      var s = String(v == null ? "" : v);
+      var out = "";
+      var i = 0;
+      for (i = 0; i < s.length; i++) {
+        var n = s.charCodeAt(i);
+        var ok = (n >= 48 && n <= 57) || (n >= 65 && n <= 90) || (n >= 97 && n <= 122) || n === 45 || n === 95;
+        if (ok) out += s.charAt(i);
+      }
+      return out;
+    }
+    function ctxt(v) {
+      var s = String(v == null ? "" : v);
+      var out = "";
+      var sp = false;
+      var i = 0;
+      for (i = 0; i < s.length; i++) {
+        var n = s.charCodeAt(i);
+        if (n === 39 || n === 59 || n === 37 || n === 95 || n === 92 || n === 123 || n === 125) { sp = true; continue; }
+        if (n === 32 || n === 9 || n === 10 || n === 13) { sp = true; continue; }
+        if (sp && out.length) out += " ";
+        sp = false;
+        out += s.charAt(i);
+      }
+      return out;
+    }
+    sessionUser = cid(acteurSession);
+    session_user = sessionUser;
+    id_perimetre = cid(typeof id_perimetre === "undefined" ? "" : id_perimetre);
+    errMsg = "";
+    if (sessionUser === "") errMsg = "Session invalide.";
+    else if (id_perimetre === "") errMsg = "Perimetre manquant.";
+    '
+↓Si_erreur [steps.IfThenElseStep-1798100700007]: 
+  condition: errMsg !== ""
+  ↓jThen [steps.ThenStep-1798100700008]: 
+    ↓Erreur [steps.XMLErrorStep-1798100700009]: 
+      code: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: PLAIN
+            - →→: 400
+      message: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: JS
+            - →→: errMsg
+    ↓Return [steps.ReturnStep-1798100700010]: 
+  ↓jElse [steps.ElseStep-1798100700011]: 
+    ↓Lire_domaines [steps.TransactionStep-1798100700020]: 
+      output: true
+      sourceTransaction: COEsprit_be.RadConnector.T_Pilote_Domaines
+      ↓session_user [variables.StepVariable-1798100700021]: 
+        value: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: JS
+              - →→: sessionUser
+      ↓id_perimetre [variables.StepVariable-1798100700022]: 
+        value: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: JS
+              - →→: id_perimetre
+    ↓Si_sql_1798100700020 [steps.IfExistStep-1798100700023]: 
+      sourceDefinition: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+          - com.twinsoft.convertigo.beans.common.XMLVector: 
+            - java.lang.String: 
+              - ↑value: 1798100700020
+            - java.lang.String: 
+              - ↑value: ./document/error
+      ↓Erreur_sql [steps.XMLErrorStep-1798100700024]: 
+        code: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: PLAIN
+              - →→: 500
+        message: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: PLAIN
+              - →→: Erreur SQL
+      ↓Return [steps.ReturnStep-1798100700025]: 
+    ↓Lire_termes [steps.TransactionStep-1798100700026]: 
+      output: true
+      sourceTransaction: COEsprit_be.RadConnector.T_Pilote_Termes
+      ↓session_user [variables.StepVariable-1798100700027]: 
+        value: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: JS
+              - →→: sessionUser
+      ↓id_perimetre [variables.StepVariable-1798100700028]: 
+        value: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: JS
+              - →→: id_perimetre
+    ↓Si_sql_1798100700026 [steps.IfExistStep-1798100700029]: 
+      sourceDefinition: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+          - com.twinsoft.convertigo.beans.common.XMLVector: 
+            - java.lang.String: 
+              - ↑value: 1798100700026
+            - java.lang.String: 
+              - ↑value: ./document/error
+      ↓Erreur_sql [steps.XMLErrorStep-1798100700030]: 
+        code: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: PLAIN
+              - →→: 500
+        message: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: PLAIN
+              - →→: Erreur SQL
+      ↓Return [steps.ReturnStep-1798100700031]: 
+↓id_perimetre [variables.RequestableVariable-1798100700090]: 

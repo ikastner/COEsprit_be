@@ -1,0 +1,130 @@
+comment: Assemble domaines, termes et listes orga pour le FE CO Esprit.
+↓Auth_session [steps.SequenceStep-1798000100001]: 
+  sourceSequence: COEsprit_be._auth__session
+↓Si_non_connecte [steps.IfExistStep-1798000100002]: 
+  sourceDefinition: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+      - com.twinsoft.convertigo.beans.common.XMLVector: 
+        - java.lang.String: 
+          - ↑value: 1798000100001
+        - java.lang.String: 
+          - ↑value: ./document/error
+  ↓Erreur [steps.XMLErrorStep-1798000100003]: 
+    code: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: 401
+    message: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: 'Non authentifié : veuillez vous reconnecter.'
+  ↓Return [steps.ReturnStep-1798000100004]: 
+↓Lire_domaines [steps.TransactionStep-1798000100010]: 
+  output: true
+  sourceTransaction: COEsprit_be.RadConnector.T_Referentiel_Domaines
+  ↓id_communaute [variables.StepVariable-1798000100015]: 
+    sourceDefinition: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+        - com.twinsoft.convertigo.beans.common.XMLVector: 
+          - java.lang.String: 
+            - ↑value: 1798000100001
+          - java.lang.String: 
+            - ↑value: ./document/acteur/id_communaute/text()
+↓Lire_termes [steps.TransactionStep-1798000100011]: 
+  output: true
+  sourceTransaction: COEsprit_be.RadConnector.T_Referentiel_Termes
+  ↓id_communaute [variables.StepVariable-1798000100012]: 
+    sourceDefinition: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+        - com.twinsoft.convertigo.beans.common.XMLVector: 
+          - java.lang.String: 
+            - ↑value: 1798000100001
+          - java.lang.String: 
+            - ↑value: ./document/acteur/id_communaute/text()
+  ↓statut [variables.StepVariable-1798000100013]: 
+    value: 
+↓Si_sql_termes [steps.IfExistStep-1798000100020]: 
+  sourceDefinition: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+      - com.twinsoft.convertigo.beans.common.XMLVector: 
+        - java.lang.String: 
+          - ↑value: 1798000100011
+        - java.lang.String: 
+          - ↑value: ./document/error
+  ↓Erreur_sql [steps.XMLErrorStep-1798000100021]: 
+    code: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: 500
+    details: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: SOURCE
+          - com.twinsoft.convertigo.beans.common.XMLVector: 
+            - java.lang.String: 
+              - ↑value: 1798000100011
+            - java.lang.String: 
+              - ↑value: ./document/error/message/text()
+    message: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: Erreur lors de la lecture du référentiel
+  ↓Return [steps.ReturnStep-1798000100022]: 
+↓Lire_listes [steps.TransactionStep-1798000100014]: 
+  output: true
+  sourceTransaction: COEsprit_be.RadConnector.T_Referentiel_Listes
+  ↓id_communaute [variables.StepVariable-1798000100016]: 
+    sourceDefinition: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+        - com.twinsoft.convertigo.beans.common.XMLVector: 
+          - java.lang.String: 
+            - ↑value: 1798000100001
+          - java.lang.String: 
+            - ↑value: ./document/acteur/id_communaute/text()
+↓Si_sql_listes [steps.IfExistStep-1798000100023]: 
+  sourceDefinition: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+      - com.twinsoft.convertigo.beans.common.XMLVector: 
+        - java.lang.String: 
+          - ↑value: 1798000100014
+        - java.lang.String: 
+          - ↑value: ./document/error
+  ↓Erreur_sql [steps.XMLErrorStep-1798000100024]: 
+    code: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: 500
+    details: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: SOURCE
+          - com.twinsoft.convertigo.beans.common.XMLVector: 
+            - java.lang.String: 
+              - ↑value: 1798000100014
+            - java.lang.String: 
+              - ↑value: ./document/error/message/text()
+    message: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: Erreur lors de la lecture des listes
+  ↓Return [steps.ReturnStep-1798000100025]: 

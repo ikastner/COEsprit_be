@@ -1,0 +1,140 @@
+comment: Renomme une appetence.
+↓Auth_session [steps.SequenceStep-1798101200001]: 
+  sourceSequence: COEsprit_be._auth__session
+↓Si_non_connecte [steps.IfExistStep-1798101200002]: 
+  sourceDefinition: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+      - com.twinsoft.convertigo.beans.common.XMLVector: 
+        - java.lang.String: 
+          - ↑value: 1798101200001
+        - java.lang.String: 
+          - ↑value: ./document/error
+  ↓Erreur [steps.XMLErrorStep-1798101200003]: 
+    code: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: 401
+    message: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: 'Non authentifié : veuillez vous reconnecter.'
+  ↓Return [steps.ReturnStep-1798101200004]: 
+↓acteurSession [steps.SimpleSourceStep-1798101200005]: 
+  sourceDefinition: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+      - com.twinsoft.convertigo.beans.common.XMLVector: 
+        - java.lang.String: 
+          - ↑value: 1798101200001
+        - java.lang.String: 
+          - ↑value: ./document/acteur/cle/text()
+  variableName: acteurSession
+↓Valider [steps.SimpleStep-1798101200006]: 
+  expression: |
+    'function cid(v) {
+      var s = String(v == null ? "" : v);
+      var out = "";
+      var i = 0;
+      for (i = 0; i < s.length; i++) {
+        var n = s.charCodeAt(i);
+        var ok = (n >= 48 && n <= 57) || (n >= 65 && n <= 90) || (n >= 97 && n <= 122) || n === 45 || n === 95;
+        if (ok) out += s.charAt(i);
+      }
+      return out;
+    }
+    function ctxt(v) {
+      var s = String(v == null ? "" : v);
+      var out = "";
+      var sp = false;
+      var i = 0;
+      for (i = 0; i < s.length; i++) {
+        var n = s.charCodeAt(i);
+        if (n === 39) { out += String.fromCharCode(39) + String.fromCharCode(39); sp = false; continue; }
+        if (n === 59 || n === 37 || n === 95 || n === 92 || n === 123 || n === 125) { sp = true; continue; }
+        if (n === 32 || n === 9 || n === 10 || n === 13) { sp = true; continue; }
+        if (sp && out.length) out += " ";
+        sp = false;
+        out += s.charAt(i);
+      }
+      return out;
+    }
+    sessionUser = cid(acteurSession);
+    session_user = sessionUser;
+    terme_id = cid(typeof terme_id === "undefined" ? "" : terme_id);
+    libelle = ctxt(typeof libelle === "undefined" ? "" : libelle);
+    errMsg = "";
+    if (sessionUser === "") errMsg = "Session invalide.";
+    else if (terme_id === "" || libelle === "") errMsg = "Saisissez un nom.";
+    '
+↓Si_erreur [steps.IfThenElseStep-1798101200007]: 
+  condition: errMsg !== ""
+  ↓jThen [steps.ThenStep-1798101200008]: 
+    ↓Erreur [steps.XMLErrorStep-1798101200009]: 
+      code: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: PLAIN
+            - →→: 400
+      message: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: JS
+            - →→: errMsg
+    ↓Return [steps.ReturnStep-1798101200010]: 
+  ↓jElse [steps.ElseStep-1798101200011]: 
+    ↓Enregistrer [steps.TransactionStep-1798101200020]: 
+      output: true
+      sourceTransaction: COEsprit_be.RadConnector.T_Terme_Renommer
+      ↓session_user [variables.StepVariable-1798101200021]: 
+        value: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: JS
+              - →→: sessionUser
+      ↓terme_id [variables.StepVariable-1798101200022]: 
+        value: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: JS
+              - →→: terme_id
+      ↓libelle [variables.StepVariable-1798101200023]: 
+        value: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: JS
+              - →→: libelle
+    ↓Si_sql_1798101200020 [steps.IfExistStep-1798101200025]: 
+      sourceDefinition: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+          - com.twinsoft.convertigo.beans.common.XMLVector: 
+            - java.lang.String: 
+              - ↑value: 1798101200020
+            - java.lang.String: 
+              - ↑value: ./document/error
+      ↓Erreur_sql [steps.XMLErrorStep-1798101200026]: 
+        code: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: PLAIN
+              - →→: 500
+        message: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: PLAIN
+              - →→: Erreur SQL
+      ↓Return [steps.ReturnStep-1798101200027]: 
+↓terme_id [variables.RequestableVariable-1798101200090]: 
+↓libelle [variables.RequestableVariable-1798101200091]: 

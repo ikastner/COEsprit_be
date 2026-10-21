@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="UTF-8"?><xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:COEsprit_be_ns="http://www.convertigo.com/convertigo/projects/COEsprit_be" attributeFormDefault="unqualified" elementFormDefault="unqualified" targetNamespace="http://www.convertigo.com/convertigo/projects/COEsprit_be">
+    <xsd:element name="RadConnector__T_Fiche_Lire" type="COEsprit_be_ns:RadConnector__T_Fiche_LireRequestData">
+        <xsd:annotation>
+            <xsd:documentation><![CDATA[Fiche profil d'un membre (code agent) avec ids termes agrégés.
+]]></xsd:documentation>
+        </xsd:annotation>
+    </xsd:element>
+    <xsd:element name="RadConnector__T_Fiche_LireResponse">
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element name="response" type="COEsprit_be_ns:RadConnector__T_Fiche_LireResponseData"/>
+            </xsd:sequence>
+        </xsd:complexType>
+    </xsd:element>
+    <xsd:complexType name="RadConnector__T_Fiche_LireResponseType">
+        <xsd:sequence>
+            <xsd:element name="document" type="COEsprit_be_ns:RadConnector__T_Fiche_LireResponseData"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="RadConnector__T_Fiche_LireRequestData">
+        <xsd:sequence>
+            <xsd:element name="user_id" type="xsd:string">
+                <xsd:annotation/>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="RadConnector__T_Fiche_LireResponseData">
+        <xsd:all>
+            <xsd:element minOccurs="0" name="error" type="COEsprit_be_ns:ConvertigoError"/>
+            <xsd:element minOccurs="0" name="sql_output">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element maxOccurs="unbounded" minOccurs="0" name="row">
+                            <xsd:complexType>
+                                <xsd:sequence>
+                                    <xsd:element name="user_id">
+                                        <xsd:complexType>
+                                            <xsd:simpleContent>
+                                                <xsd:extension base="xsd:string">
+                                                    <xsd:attribute name="type" type="xsd:string" use="required"/>
+                                                    <xsd:attribute name="originalKeyName" type="xsd:string"/>
+                                                </xsd:extension>
+                                            </xsd:simpleContent>
+                                        </xsd:complexType>
+                                    </xsd:element>
+                                    <xsd:element name="nom_affiche">
+                                        <xsd:complexType>
+                                            <xsd:simpleContent>
+                                                <xsd:extension base="xsd:string">
+                                                    <xsd:attribute name="type" type="xsd:string" use="required"/>
+                                                    <xsd:attribute name="originalKeyName" type="xsd:string"/>
+                                                </xsd:extension>
+                                            </xsd:simpleContent>
+                                        </xsd:complexType>
+                                    </xsd:element>
+                                    <xsd:element name="mail_si">
+                                        <xsd:complexType>
+                                            <xsd:simpleContent>
+                                                <xsd:extension base="xsd:string">
+                                                    <xsd:attribute name="type" type="xsd:string" use="required"/>
+                                                    <xsd:attribute name="originalKeyName" type="xsd:string"/>
+                                                </xsd:extension>
+                                            </xsd:simpleContent>
+                                        </xsd:complexType>
+                                    </xsd:element>
+                                    <xsd:element name="site">
+                                        <xsd:complexType>
+                                            <xsd:simpleContent>
+                                                <xsd:extension base="xsd:string">
+                                                    <xsd:attribute name="type" type="xsd:string" use="required"/>
+                                                    <xsd:attribute name="originalKeyName" type="xsd:string"/>
+                                                </xsd:extension>
+                                            </xsd:simpleContent>
+                                        </xsd:complexType>
+                                    </xsd:element>
+                                    <xsd:element name="id_perimetre">
+                                        <xsd:complexType>
+                                            <xsd:simpleContent>
+                                                <xsd:extension base="xsd:string">
+                                                    <xsd:attribute name="type" type="xsd:string" use="required"/>
+                                                    <xsd:attribute name="originalKeyName" type="xsd:string"/>
+                                                </xsd:extension>
+                                            </xsd:simpleContent>
+                                        </xsd:complexType>
+                                    </xsd:element>
+                                    <xsd:element name="entite_operationnelle">
+                                        <xsd:complexType>
+                                            <xsd:simpleContent>
+                                                <xsd:extension base="xsd:string">
+                                                    <xsd:attribute name="type" type="xsd:string" use="required"/>
+                                                    <xsd:attribute name="originalKeyName" type="xsd:string"/>
+                                                </xsd:extension>
+                                            </xsd:simpleContent>
+                                        </xsd:complexType>
+                                    </xsd:element>
+                                    <xsd:element name="libelle_poste">
+                                        <xsd:complexType>
+                                            <xsd:simpleContent>
+                                                <xsd:extension base="xsd:string">
+                                                    <xsd:attribute name="type" type="xsd:string" use="required"/>
+                                                    <xsd:attribute name="originalKeyName" type="xsd:string"/>
+                                                </xsd:extension>
+                                            </xsd:simpleContent>
+                                        </xsd:complexType>
+                                    </xsd:element>
+                                    <xsd:element name="activites_principales">
+                                        <xsd:complexType>
+                                            <xsd:simpleContent>
+                                                <xsd:extension base="xsd:string">
+                                                    <xsd:attribute name="type" type="xsd:string" use="required"/>
+                                                    <xsd:attribute name="originalKeyName" type="xsd:string"/>
+                                                </xsd:extension>
+                                            </xsd:simpleContent>
+                                        </xsd:complexType>
+                                    </xsd:element>
+                                    <xsd:element name="sujets_aide">
+                                        <xsd:complexType>
+                                            <xsd:simpleContent>
+                                                <xsd:extension base="xsd:string">
+                                                    <xsd:attribute name="type" type="xsd:string" use="required"/>
+                                                    <xsd:attribute name="originalKeyName" type="xsd:string"/>
+                                                </xsd:extension>
+                                            </xsd:simpleContent>
+                                        </xsd:complexType>
+                                    </xsd:element>
+                                    <xsd:element name="passions">
+                                        <xsd:complexType>
+                                            <xsd:simpleContent>
+                                                <xsd:extension base="xsd:string">
+                                                    <xsd:attribute name="type" type="xsd:string" use="required"/>
+                                                    <xsd:attribute name="originalKeyName" type="xsd:string"/>
+                                                </xsd:extension>
+                                            </xsd:simpleContent>
+                                        </xsd:complexType>
+                                    </xsd:element>
+                                    <xsd:element name="canal_mail">
+                                        <xsd:complexType>
+                                            <xsd:simpleContent>
+                                                <xsd:extension base="xsd:string">
+                                                    <xsd:attribute name="type" type="xsd:string" use="required"/>
+                                                    <xsd:attribute name="originalKeyName" type="xsd:string"/>
+                                                </xsd:extension>
+                                            </xsd:simpleContent>
+                                        </xsd:complexType>
+                                    </xsd:element>
+                                    <xsd:element name="canal_teams">
+                                        <xsd:complexType>
+                                            <xsd:simpleContent>
+                                                <xsd:extension base="xsd:string">
+                                                    <xsd:attribute name="type" type="xsd:string" use="required"/>
+                                                    <xsd:attribute name="originalKeyName" type="xsd:string"/>
+                                                </xsd:extension>
+                                            </xsd:simpleContent>
+                                        </xsd:complexType>
+                                    </xsd:element>
+                                    <xsd:element name="photo_url">
+                                        <xsd:complexType>
+                                            <xsd:simpleContent>
+                                                <xsd:extension base="xsd:string">
+                                                    <xsd:attribute name="type" type="xsd:string" use="required"/>
+                                                    <xsd:attribute name="originalKeyName" type="xsd:string"/>
+                                                </xsd:extension>
+                                            </xsd:simpleContent>
+                                        </xsd:complexType>
+                                    </xsd:element>
+                                    <xsd:element name="updated_at">
+                                        <xsd:complexType>
+                                            <xsd:simpleContent>
+                                                <xsd:extension base="xsd:dateTime">
+                                                    <xsd:attribute name="type" type="xsd:string" use="required"/>
+                                                    <xsd:attribute name="originalKeyName" type="xsd:string"/>
+                                                </xsd:extension>
+                                            </xsd:simpleContent>
+                                        </xsd:complexType>
+                                    </xsd:element>
+                                    <xsd:sequence>
+                                        <xsd:element name="perimetre">
+                                            <xsd:complexType>
+                                                <xsd:simpleContent>
+                                                    <xsd:extension base="xsd:string">
+                                                        <xsd:attribute name="type" type="xsd:string" use="required"/>
+                                                        <xsd:attribute name="originalKeyName" type="xsd:string"/>
+                                                    </xsd:extension>
+                                                </xsd:simpleContent>
+                                            </xsd:complexType>
+                                        </xsd:element>
+                                        <xsd:element name="id_communaute">
+                                            <xsd:complexType>
+                                                <xsd:simpleContent>
+                                                    <xsd:extension base="xsd:string">
+                                                        <xsd:attribute name="type" type="xsd:string" use="required"/>
+                                                        <xsd:attribute name="originalKeyName" type="xsd:string"/>
+                                                    </xsd:extension>
+                                                </xsd:simpleContent>
+                                            </xsd:complexType>
+                                        </xsd:element>
+                                        <xsd:element name="communaute">
+                                            <xsd:complexType>
+                                                <xsd:simpleContent>
+                                                    <xsd:extension base="xsd:string">
+                                                        <xsd:attribute name="type" type="xsd:string" use="required"/>
+                                                        <xsd:attribute name="originalKeyName" type="xsd:string"/>
+                                                    </xsd:extension>
+                                                </xsd:simpleContent>
+                                            </xsd:complexType>
+                                        </xsd:element>
+                                        <xsd:element name="terme_ids">
+                                            <xsd:complexType>
+                                                <xsd:simpleContent>
+                                                    <xsd:extension base="xsd:string">
+                                                        <xsd:attribute name="type" type="xsd:string" use="required"/>
+                                                        <xsd:attribute name="originalKeyName" type="xsd:string"/>
+                                                    </xsd:extension>
+                                                </xsd:simpleContent>
+                                            </xsd:complexType>
+                                        </xsd:element>
+                                        <xsd:sequence>
+                                            <xsd:element name="role_local">
+                                                <xsd:complexType>
+                                                    <xsd:simpleContent>
+                                                        <xsd:extension base="xsd:string">
+                                                            <xsd:attribute name="type" type="xsd:string" use="required"/>
+                                                            <xsd:attribute name="originalKeyName" type="xsd:string"/>
+                                                        </xsd:extension>
+                                                    </xsd:simpleContent>
+                                                </xsd:complexType>
+                                            </xsd:element>
+                                            <xsd:element name="pilote_communaute">
+                                                <xsd:complexType>
+                                                    <xsd:simpleContent>
+                                                        <xsd:extension base="xsd:string">
+                                                            <xsd:attribute name="type" type="xsd:string" use="required"/>
+                                                            <xsd:attribute name="originalKeyName" type="xsd:string"/>
+                                                        </xsd:extension>
+                                                    </xsd:simpleContent>
+                                                </xsd:complexType>
+                                            </xsd:element>
+                                            <xsd:element name="role_session">
+                                                <xsd:complexType>
+                                                    <xsd:simpleContent>
+                                                        <xsd:extension base="xsd:string">
+                                                            <xsd:attribute name="type" type="xsd:string" use="required"/>
+                                                            <xsd:attribute name="originalKeyName" type="xsd:string"/>
+                                                        </xsd:extension>
+                                                    </xsd:simpleContent>
+                                                </xsd:complexType>
+                                            </xsd:element>
+                                            <xsd:element name="membre_actif">
+                                                <xsd:complexType>
+                                                    <xsd:simpleContent>
+                                                        <xsd:extension base="xsd:string">
+                                                            <xsd:attribute name="type" type="xsd:string" use="required"/>
+                                                            <xsd:attribute name="originalKeyName" type="xsd:string"/>
+                                                        </xsd:extension>
+                                                    </xsd:simpleContent>
+                                                </xsd:complexType>
+                                            </xsd:element>
+                                        </xsd:sequence>
+                                    </xsd:sequence>
+                                </xsd:sequence>
+                                <xsd:attribute fixed="object" name="type" type="xsd:string" use="required"/>
+                            </xsd:complexType>
+                        </xsd:element>
+                    </xsd:sequence>
+                    <xsd:attribute fixed="array" name="type" type="xsd:string" use="required"/>
+                </xsd:complexType>
+            </xsd:element>
+        </xsd:all>
+        <xsd:attribute name="connector" type="xsd:string"/>
+        <xsd:attribute name="context" type="xsd:string"/>
+        <xsd:attribute name="contextId" type="xsd:string"/>
+        <xsd:attribute name="fromStub" type="xsd:string"/>
+        <xsd:attribute name="fromcache" type="xsd:string"/>
+        <xsd:attribute name="generated" type="xsd:string"/>
+        <xsd:attribute name="project" type="xsd:string"/>
+        <xsd:attribute name="screenclass" type="xsd:string"/>
+        <xsd:attribute name="sequence" type="xsd:string"/>
+        <xsd:attribute name="signature" type="xsd:string"/>
+        <xsd:attribute name="transaction" type="xsd:string"/>
+        <xsd:attribute name="userReference" type="xsd:string"/>
+        <xsd:attribute name="version" type="xsd:string"/>
+    </xsd:complexType>
+    <xsd:complexType name="ConvertigoErrorContextVariable">
+        <xsd:attribute name="name" type="xsd:string"/>
+        <xsd:attribute name="value" type="xsd:string"/>
+    </xsd:complexType>
+    <xsd:complexType name="ConvertigoErrorContext">
+        <xsd:sequence>
+            <xsd:element maxOccurs="unbounded" minOccurs="0" name="variable" type="COEsprit_be_ns:ConvertigoErrorContextVariable"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="ConvertigoError">
+        <xsd:sequence minOccurs="0">
+            <xsd:element name="code" type="xsd:integer"/>
+            <xsd:element name="message" type="xsd:string"/>
+            <xsd:element name="details" type="xsd:string"/>
+            <xsd:element name="context" type="COEsprit_be_ns:ConvertigoErrorContext"/>
+            <xsd:element name="exception" type="xsd:string"/>
+            <xsd:element name="stacktrace" type="xsd:string"/>
+        </xsd:sequence>
+        <xsd:attribute name="project" type="xsd:string"/>
+        <xsd:attribute name="connector" type="xsd:string"/>
+        <xsd:attribute name="transaction" type="xsd:string"/>
+        <xsd:attribute name="sequence" type="xsd:string"/>
+        <xsd:attribute name="type">
+            <xsd:simpleType>
+                <xsd:restriction base="xsd:string">
+                    <xsd:enumeration value="c8o"/>
+                    <xsd:enumeration value="project"/>
+                </xsd:restriction>
+            </xsd:simpleType>
+        </xsd:attribute>
+    </xsd:complexType>
+</xsd:schema>

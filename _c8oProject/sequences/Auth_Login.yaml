@@ -1,0 +1,460 @@
+comment: 'Point d''entree login Portefeuille. Si authHorsSI=true : code agent + role COE sans LDAP. Sinon : LDAP SI. Dans les deux cas, refuse si le compte n''est pas dans PLG_Ligne.'
+↓Route [steps.IfThenElseStep-1791387210001]: 
+  condition: String(authHorsSI).toLowerCase()=="true"
+  ↓jThen [steps.ThenStep-1791387210002]: 
+    ↓Valider [steps.SimpleStep-1791387210003]: 
+      expression: |
+        'codeAgentLogin = String(user == null ? "" : user).trim();
+        rolePick = String(testRole == null ? "" : testRole).trim().toUpperCase();
+        errMsg = "";
+        if (codeAgentLogin === "") errMsg = "Saisissez un code agent (ex. ac750).";
+        else if (rolePick !== "MEMBRE" && rolePick !== "PILOTE" && rolePick !== "ADMIN") errMsg = "Choisissez un role (Membre, Pilote ou Admin).";
+        roleList = [rolePick];
+        code = codeAgentLogin;
+        '
+    ↓Si_erreur [steps.IfThenElseStep-1791387210004]: 
+      condition: errMsg !== ""
+      ↓jThen [steps.ThenStep-1791387210005]: 
+        ↓Erreur [steps.XMLErrorStep-1791387210006]: 
+          code: 
+            - xmlizable: 
+              - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+              - SmartType: 
+                - ↑mode: PLAIN
+                - →→: 401
+          message: 
+            - xmlizable: 
+              - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+              - SmartType: 
+                - ↑mode: JS
+                - →→: errMsg
+        ↓Return [steps.ReturnStep-1791387210007]: 
+      ↓jElse [steps.ElseStep-1791387210008]: 
+        ↓Resoudre_ligne [steps.TransactionStep-1791387210104]: 
+          comment: Refuse le login si le code agent n''est pas une membre CO'Esprit.
+          sourceTransaction: COEsprit_be.RadConnector.T_Membre_Resoudre
+          ↓code [variables.StepVariable-1791387210105]: 
+            description: code
+            value: 
+              - xmlizable: 
+                - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                - SmartType: 
+                  - ↑mode: JS
+                  - →→: codeAgentLogin
+        ↓ligneRaw [steps.JsonSourceStep-1791387210106]: 
+          sourceDefinition: 
+            - xmlizable: 
+              - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+              - com.twinsoft.convertigo.beans.common.XMLVector: 
+                - java.lang.String: 
+                  - ↑value: 1791387210104
+                - java.lang.String: 
+                  - ↑value: ./document/sql_output/row
+          variableName: ligneRaw
+        ↓Controler_ligne [steps.SimpleStep-1791387210107]: 
+          expression: |
+            'var rows = [];
+            if (typeof ligneRaw !== "undefined" && ligneRaw != null) rows = (typeof ligneRaw.length === "number") ? ligneRaw : [ligneRaw];
+            if (!rows.length || rows[0].cle == null || String(rows[0].cle) === "") {
+                errMsg = "Accès refusé : aucun membre CO''Esprit n’est associé à ce compte.";
+            } else {
+                codeAgentLogin = String(rows[0].cle);
+                code = codeAgentLogin;
+                nomAffiche = String(rows[0].nom || "").trim() || codeAgentLogin;
+                photoUrl = String(rows[0].photo_url || "").trim();
+                roleSession = String(rows[0].code_role || "membre");
+                roleLocal = String(rows[0].role_local || "membre");
+                piloteCommunaute = rows[0].pilote_communaute === true || String(rows[0].pilote_communaute) === "true" || String(rows[0].pilote_communaute) === "t";
+                errMsg = "";
+            }
+            '
+        ↓Si_sans_ligne [steps.IfThenElseStep-1791387210108]: 
+          condition: errMsg !== ""
+          ↓jThen [steps.ThenStep-1791387210109]: 
+            ↓Erreur_ligne [steps.XMLErrorStep-1791387210110]: 
+              code: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: 403
+              message: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: JS
+                    - →→: errMsg
+            ↓Return_ligne [steps.ReturnStep-1791387210111]: 
+          ↓jElse [steps.ElseStep-1791387210112]: 
+            ↓userOut [steps.JsonObjectStep-1791387210009]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: user
+              ↓codeAgent [steps.JsonFieldStep-1791387210010]: 
+                key: 
+                  - xmlizable: 
+                    - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                    - SmartType: 
+                      - ↑mode: PLAIN
+                      - →→: codeAgent
+                value: 
+                  - xmlizable: 
+                    - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                    - SmartType: 
+                      - ↑mode: JS
+                      - →→: codeAgentLogin
+              ↓displayName [steps.JsonFieldStep-1791387210011]: 
+                key: 
+                  - xmlizable: 
+                    - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                    - SmartType: 
+                      - ↑mode: PLAIN
+                      - →→: displayName
+                value: 
+                  - xmlizable: 
+                    - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                    - SmartType: 
+                      - ↑mode: JS
+                      - →→: nomAffiche
+              ↓nom [steps.JsonFieldStep-1791387210012]: 
+                key: 
+                  - xmlizable: 
+                    - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                    - SmartType: 
+                      - ↑mode: PLAIN
+                      - →→: nom
+                value: 
+                  - xmlizable: 
+                    - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                    - SmartType: 
+                      - ↑mode: JS
+                      - →→: nomAffiche
+              ↓prenom [steps.JsonFieldStep-1791387210021]: 
+                key: 
+                  - xmlizable: 
+                    - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                    - SmartType: 
+                      - ↑mode: PLAIN
+                      - →→: prenom
+              ↓mail [steps.JsonFieldStep-1791387210022]: 
+                key: 
+                  - xmlizable: 
+                    - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                    - SmartType: 
+                      - ↑mode: PLAIN
+                      - →→: mail
+              ↓photo [steps.JsonFieldStep-1791387210023]: 
+                key: 
+                  - xmlizable: 
+                    - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                    - SmartType: 
+                      - ↑mode: PLAIN
+                      - →→: photo
+                value: 
+                  - xmlizable: 
+                    - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                    - SmartType: 
+                      - ↑mode: JS
+                      - →→: photoUrl
+              ↓roleSession [steps.JsonFieldStep-1791387210041]: 
+                key: 
+                  - xmlizable: 
+                    - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                    - SmartType: 
+                      - ↑mode: PLAIN
+                      - →→: roleSession
+                value: 
+                  - xmlizable: 
+                    - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                    - SmartType: 
+                      - ↑mode: JS
+                      - →→: roleSession
+              ↓roleLocal [steps.JsonFieldStep-1791387210042]: 
+                key: 
+                  - xmlizable: 
+                    - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                    - SmartType: 
+                      - ↑mode: PLAIN
+                      - →→: roleLocal
+                value: 
+                  - xmlizable: 
+                    - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                    - SmartType: 
+                      - ↑mode: JS
+                      - →→: roleLocal
+              ↓piloteCommunaute [steps.JsonFieldStep-1791387210043]: 
+                key: 
+                  - xmlizable: 
+                    - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                    - SmartType: 
+                      - ↑mode: PLAIN
+                      - →→: piloteCommunaute
+                value: 
+                  - xmlizable: 
+                    - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                    - SmartType: 
+                      - ↑mode: JS
+                      - →→: piloteCommunaute
+              ↓application [steps.JsonFieldStep-1791387210013]: 
+                key: 
+                  - xmlizable: 
+                    - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                    - SmartType: 
+                      - ↑mode: PLAIN
+                      - →→: application
+                value: 
+                  - xmlizable: 
+                    - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                    - SmartType: 
+                      - ↑mode: PLAIN
+                      - →→: COESPRIT
+              ↓roleTest [steps.JsonFieldStep-1791387210014]: 
+                key: 
+                  - xmlizable: 
+                    - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                    - SmartType: 
+                      - ↑mode: PLAIN
+                      - →→: roleTest
+                value: 
+                  - xmlizable: 
+                    - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                    - SmartType: 
+                      - ↑mode: JS
+                      - →→: rolePick
+              ↓role [steps.JsonArrayStep-1791387210015]: 
+                key: 
+                  - xmlizable: 
+                    - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                    - SmartType: 
+                      - ↑mode: PLAIN
+                      - →→: role
+                ↓jIterator [steps.SimpleIteratorStep-1791387210016]: 
+                  expression: roleList
+                  ↓roleItem [steps.JsonFieldStep-1791387210017]: 
+                    key: 
+                      - xmlizable: 
+                        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                        - SmartType: 
+                          - ↑mode: PLAIN
+                          - →→: role
+                    value: 
+                      - xmlizable: 
+                        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                        - SmartType: 
+                          - ↑mode: JS
+                          - →→: item
+              ↓n_1 [steps.JsonObjectStep-1791387210024]: 
+                comment: Stub hierarchie LDAP attendue par lib_common_be.auth__get__in__session
+                key: 
+                  - xmlizable: 
+                    - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                    - SmartType: 
+                      - ↑mode: PLAIN
+                      - →→: n+1
+                ↓codeAgent [steps.JsonFieldStep-1791387210025]: 
+                  key: 
+                    - xmlizable: 
+                      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                      - SmartType: 
+                        - ↑mode: PLAIN
+                        - →→: codeAgent
+                ↓displayName [steps.JsonFieldStep-1791387210026]: 
+                  key: 
+                    - xmlizable: 
+                      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                      - SmartType: 
+                        - ↑mode: PLAIN
+                        - →→: displayName
+                ↓mail [steps.JsonFieldStep-1791387210027]: 
+                  key: 
+                    - xmlizable: 
+                      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                      - SmartType: 
+                        - ↑mode: PLAIN
+                        - →→: mail
+                ↓n_2 [steps.JsonObjectStep-1791387210028]: 
+                  key: 
+                    - xmlizable: 
+                      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                      - SmartType: 
+                        - ↑mode: PLAIN
+                        - →→: n+2
+                  ↓codeAgent [steps.JsonFieldStep-1791387210029]: 
+                    key: 
+                      - xmlizable: 
+                        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                        - SmartType: 
+                          - ↑mode: PLAIN
+                          - →→: codeAgent
+                  ↓displayName [steps.JsonFieldStep-1791387210036]: 
+                    key: 
+                      - xmlizable: 
+                        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                        - SmartType: 
+                          - ↑mode: PLAIN
+                          - →→: displayName
+                  ↓mail [steps.JsonFieldStep-1791387210037]: 
+                    key: 
+                      - xmlizable: 
+                        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                        - SmartType: 
+                          - ↑mode: PLAIN
+                          - →→: mail
+            ↓Set_user_session [steps.SessionSetObjectStep-1791387210018]: 
+              key: user
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: SOURCE
+                    - com.twinsoft.convertigo.beans.common.XMLVector: 
+                      - java.lang.String: 
+                        - ↑value: 1791387210009
+                      - java.lang.String: 
+                        - ↑value: .
+            ↓Set_roleTest_session [steps.SessionSetStep-1791387210019]: 
+              expression: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: JS
+                    - →→: rolePick
+              key: coeRoleTest
+            ↓authenticatedUserID [steps.SetAuthenticatedUserStep-1791387210020]: 
+              userid: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: JS
+                    - →→: codeAgentLogin
+  ↓jElse [steps.ElseStep-1791387210030]: 
+    ↓Call_SI [steps.SequenceStep-1791387210031]: 
+      output: true
+      sourceSequence: lib_common_be.auth__login
+      ↓user [variables.StepVariable-1791387210032]: 
+        comment: Identifiant SI / LDAP
+      ↓password [variables.StepVariable-1791387210033]: 
+        comment: Mot de passe SI (herite de la variable password de la sequence)
+        value: 
+          - ↑ciphered: true
+          - ↑traceable: false
+          - →→: xd8e180806a1c1d83a6255212121ab827
+        visibility: '-1'
+      ↓appName [variables.StepVariable-1791387210034]: 
+        value: COESPRIT
+      ↓socleRoles [variables.StepVariable-1791387210035]: 
+        value: DEVELOP_INTERNES,DEVELOP_EXTERNES,UTIL_INTERNES,UTIL_EXTERNES,ADMIN-NATDSI
+    ↓Si_echec_SI [steps.IfExistStep-1791387210113]: 
+      sourceDefinition: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+          - com.twinsoft.convertigo.beans.common.XMLVector: 
+            - java.lang.String: 
+              - ↑value: 1791387210031
+            - java.lang.String: 
+              - ↑value: ./document/error
+      ↓Return_echec_SI [steps.ReturnStep-1791387210114]: 
+    ↓Auth_id_SI [steps.GetAuthenticatedUserStep-1791387210115]: 
+    ↓authIdRaw [steps.SimpleSourceStep-1791387210116]: 
+      sourceDefinition: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+          - com.twinsoft.convertigo.beans.common.XMLVector: 
+            - java.lang.String: 
+              - ↑value: 1791387210115
+            - java.lang.String: 
+              - ↑value: .
+      variableName: authIdRaw
+    ↓Prep_code_SI [steps.SimpleStep-1791387210117]: 
+      expression: |
+        'code = String(authIdRaw == null ? "" : authIdRaw).trim();
+        if (code === "") code = String(user == null ? "" : user).trim();
+        errMsg = "";
+        '
+    ↓Resoudre_ligne_SI [steps.TransactionStep-1791387210118]: 
+      comment: Apres LDAP, refuse si le compte n''est pas dans PLG_Ligne.
+      sourceTransaction: COEsprit_be.RadConnector.T_Membre_Resoudre
+      ↓code [variables.StepVariable-1791387210119]: 
+        description: code
+    ↓ligneRaw_SI [steps.JsonSourceStep-1791387210120]: 
+      sourceDefinition: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+          - com.twinsoft.convertigo.beans.common.XMLVector: 
+            - java.lang.String: 
+              - ↑value: 1791387210118
+            - java.lang.String: 
+              - ↑value: ./document/sql_output/row
+      variableName: ligneRaw_SI
+    ↓Controler_ligne_SI [steps.SimpleStep-1791387210121]: 
+      expression: |
+        'var rows = [];
+        if (typeof ligneRaw_SI !== "undefined" && ligneRaw_SI != null) rows = (typeof ligneRaw_SI.length === "number") ? ligneRaw_SI : [ligneRaw_SI];
+        if (!code || !rows.length || rows[0].cle == null || String(rows[0].cle) === "") {
+            errMsg = "Accès refusé : aucun membre CO''Esprit n’est associé à ce compte.";
+        } else {
+            errMsg = "";
+        }
+        '
+    ↓Si_sans_ligne_SI [steps.IfThenElseStep-1791387210122]: 
+      condition: errMsg !== ""
+      ↓jThen [steps.ThenStep-1791387210123]: 
+        ↓Clear_user_session_SI [steps.SessionRemoveStep-1791387210128]: 
+          key: user
+        ↓Clear_roleTest_SI [steps.SessionRemoveStep-1791387210129]: 
+          key: coeRoleTest
+        ↓Logout_SI [steps.RemoveAuthenticatedUserStep-1791387210124]: 
+        ↓Erreur_ligne_SI [steps.XMLErrorStep-1791387210125]: 
+          code: 
+            - xmlizable: 
+              - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+              - SmartType: 
+                - ↑mode: PLAIN
+                - →→: 403
+          message: 
+            - xmlizable: 
+              - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+              - SmartType: 
+                - ↑mode: JS
+                - →→: errMsg
+        ↓Return_ligne_SI [steps.ReturnStep-1791387210126]: 
+      ↓jElse [steps.ElseStep-1791387210127]: 
+↓user [variables.RequestableVariable-1791387210100]: 
+  comment: Code agent (hors SI) ou identifiant LDAP (SI)
+↓password [variables.RequestableVariable-1791387210101]: 
+  comment: Mot de passe SI (ignore si authHorsSI=true)
+  value: 
+    - ↑ciphered: true
+    - ↑traceable: false
+    - →→: xd8e180806a1c1d83a6255212121ab827
+  visibility: '-1'
+↓testRole [variables.RequestableVariable-1791387210102]: 
+  comment: 'Hors SI uniquement : MEMBRE | PILOTE | ADMIN'
+↓authHorsSI [variables.RequestableVariable-1791387210103]: 
+  description: Variable serveur (defaut false). true = login hors SI (Mac). false = LDAP SI (PC). Masquee au client.
+  value: 
+    - ↑ciphered: true
+    - ↑traceable: false
+    - →→: x07e7020a82c9c95297cb245bfdafd8a6
+  visibility: '-1'
+↓Test_Case [core.TestCase]: 
+  ↓user [variables.TestCaseVariable-1792399511270]: 
+    value: ac75001000
+  ↓password [variables.TestCaseVariable-1792399511272]: 
+    value: 
+      - ↑ciphered: true
+      - ↑traceable: false
+      - →→: xd8e180806a1c1d83a6255212121ab827
+    visibility: '-1'
+  ↓testRole [variables.TestCaseVariable-1792399511274]: 
+    value: MEMBRE
+  ↓authHorsSI [variables.TestCaseVariable-1792399511276]: 
+    description: Variable serveur (defaut false). true = login hors SI (Mac). false = LDAP SI (PC). Masquee au client.
+    value: 
+      - ↑ciphered: true
+      - ↑traceable: false
+      - →→: x07e7020a82c9c95297cb245bfdafd8a6
+    visibility: '-1'
