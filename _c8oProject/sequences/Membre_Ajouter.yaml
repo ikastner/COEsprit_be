@@ -65,6 +65,7 @@ comment: Ajoute un membre sur une communaute et un perimetre.
     sessionUser = cid(acteurSession);
     session_user = sessionUser;
     code_agent = cid(typeof code_agent === "undefined" ? "" : code_agent);
+    codes = code_agent;
     id_communaute = cid(typeof id_communaute === "undefined" ? "" : id_communaute);
     id_perimetre = cid(typeof id_perimetre === "undefined" ? "" : id_perimetre);
     role = cid(typeof role === "undefined" ? "" : role);
