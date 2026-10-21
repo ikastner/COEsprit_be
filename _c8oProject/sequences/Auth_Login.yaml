@@ -530,6 +530,63 @@ comment: 'Point d''entree login Portefeuille. Si authHorsSI=true : code agent + 
                 - SmartType: 
                   - ↑mode: PLAIN
                   - →→: COESPRIT
+          ↓n_1 [steps.JsonObjectStep-1791387220124]: 
+            comment: Stub hierarchie LDAP attendue par lib_common_be.auth__get__in__session
+            key: 
+              - xmlizable: 
+                - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                - SmartType: 
+                  - ↑mode: PLAIN
+                  - →→: n+1
+            ↓codeAgent [steps.JsonFieldStep-1791387220125]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: codeAgent
+            ↓displayName [steps.JsonFieldStep-1791387220126]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: displayName
+            ↓mail [steps.JsonFieldStep-1791387220127]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: mail
+            ↓n_2 [steps.JsonObjectStep-1791387220128]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: n+2
+              ↓codeAgent [steps.JsonFieldStep-1791387220129]: 
+                key: 
+                  - xmlizable: 
+                    - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                    - SmartType: 
+                      - ↑mode: PLAIN
+                      - →→: codeAgent
+              ↓displayName [steps.JsonFieldStep-1791387220136]: 
+                key: 
+                  - xmlizable: 
+                    - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                    - SmartType: 
+                      - ↑mode: PLAIN
+                      - →→: displayName
+              ↓mail [steps.JsonFieldStep-1791387220137]: 
+                key: 
+                  - xmlizable: 
+                    - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                    - SmartType: 
+                      - ↑mode: PLAIN
+                      - →→: mail
           ↓role [steps.JsonArrayStep-1791387220115]: 
             key: 
               - xmlizable: 
