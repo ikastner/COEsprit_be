@@ -126,10 +126,15 @@ comment: Ajoute un membre sur une communaute et un perimetre.
         }
         var row = (typeof annuaireAgent === "undefined") ? null : annuaireAgent;
         if (row && typeof row.length === "number") row = row[0];
-        nomAgent = esc(row ? (row.nom || row.nom_complet || "") : "");
-        mailAgent = esc(row ? (row.mail || "") : "");
-        siteAgent = esc(row ? (row.site || "") : "");
-        serviceAgent = esc(row ? (row.libelle_service || "") : "");
+        var complet = "";
+        if (row) {
+          complet = String(row.nom_complet || "").replace(/^\s+|\s+$/g, "");
+          if (!complet) complet = (String(row.nom || "") + " " + String(row.prenom || "")).replace(/^\s+|\s+$/g, "");
+        }
+        nom = esc(complet);
+        mail = esc(row ? (row.mail || "") : "");
+        site = esc(row ? (row.site || "") : "");
+        libelle_service = esc(row ? (row.libelle_service || "") : "");
         '
     ↓Enregistrer [steps.TransactionStep-1798100400020]: 
       output: true
@@ -175,28 +180,28 @@ comment: Ajoute un membre sur une communaute et un perimetre.
             - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
             - SmartType: 
               - ↑mode: JS
-              - →→: nomAgent
+              - →→: nom
       ↓mail [variables.StepVariable-1798100400035]: 
         value: 
           - xmlizable: 
             - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
             - SmartType: 
               - ↑mode: JS
-              - →→: mailAgent
+              - →→: mail
       ↓site [variables.StepVariable-1798100400036]: 
         value: 
           - xmlizable: 
             - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
             - SmartType: 
               - ↑mode: JS
-              - →→: siteAgent
+              - →→: site
       ↓libelle_service [variables.StepVariable-1798100400037]: 
         value: 
           - xmlizable: 
             - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
             - SmartType: 
               - ↑mode: JS
-              - →→: serviceAgent
+              - →→: libelle_service
     ↓Si_sql_1798100400020 [steps.IfExistStep-1798100400026]: 
       sourceDefinition: 
         - xmlizable: 
