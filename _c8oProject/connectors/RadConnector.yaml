@@ -136,32 +136,32 @@ jdbcUserPassword: xbc870dc161b16b0f06a9d06fdcf09c94b379617ee87b40aa7f19879967298
   comment: Fiche profil d'un membre (code agent) avec ids termes agrégés.
   sqlQuery: |
     SELECT
-        f.user_id,
-        f.nom_affiche,
-        f.mail_si,
-        f.site,
-        p.libelle AS perimetre,
-        f.id_perimetre,
-        f.entite_operationnelle,
-        f.libelle_poste,
-        f.activites_principales,
-        f.sujets_aide,
-        f.passions,
-        f.canal_mail,
-        f.canal_teams,
-        f.photo_url,
+        COALESCE(f.user_id, m.code_agent) AS user_id,
+        COALESCE(f.nom_affiche, m.nom_affiche) AS nom_affiche,
+        COALESCE(f.mail_si, m.mail, '') AS mail_si,
+        COALESCE(f.site, m.site, '') AS site,
+        COALESCE(p.libelle, '') AS perimetre,
+        COALESCE(f.id_perimetre, m.id_perimetre, '') AS id_perimetre,
+        COALESCE(f.entite_operationnelle, '') AS entite_operationnelle,
+        COALESCE(f.libelle_poste, '') AS libelle_poste,
+        COALESCE(f.activites_principales, '') AS activites_principales,
+        COALESCE(f.sujets_aide, '') AS sujets_aide,
+        COALESCE(f.passions, '') AS passions,
+        COALESCE(f.canal_mail, '') AS canal_mail,
+        COALESCE(f.canal_teams, '') AS canal_teams,
+        COALESCE(f.photo_url, '') AS photo_url,
         f.updated_at,
         m.role_local,
         m.pilote_communaute,
         m.role_session,
         m.actif AS membre_actif,
-        c.id AS id_communaute,
-        c.libelle AS communaute
-    FROM "COE_Fiche" f
-    JOIN "COE_Membre" m ON m.code_agent = f.user_id
-    JOIN "COE_Communaute" c ON c.id = m.id_communaute
-    JOIN "COE_Communaute" p ON p.id = f.id_perimetre
-    WHERE UPPER(f.user_id) = UPPER('{user_id}');
+        COALESCE(c.id, '') AS id_communaute,
+        COALESCE(c.libelle, '') AS communaute
+    FROM "COE_Membre" m
+    LEFT JOIN "COE_Fiche" f ON UPPER(f.user_id) = UPPER(m.code_agent)
+    LEFT JOIN "COE_Communaute" c ON c.id = m.id_communaute
+    LEFT JOIN "COE_Communaute" p ON p.id = COALESCE(f.id_perimetre, m.id_perimetre)
+    WHERE UPPER(m.code_agent) = UPPER('{user_id}');
   ↓Test_Case [core.TestCase]: 
     ↓user_id [variables.TestCaseVariable-1792505339444]: 
       value: ac75001004
@@ -242,14 +242,14 @@ jdbcUserPassword: xbc870dc161b16b0f06a9d06fdcf09c94b379617ee87b40aa7f19879967298
         m.id_perimetre,
         p.libelle AS perimetre
     FROM "COE_Membre" m
-    JOIN "COE_Communaute" c ON c.id = m.id_communaute
-    JOIN "COE_Communaute" p ON p.id = m.id_perimetre
+    LEFT JOIN "COE_Communaute" c ON c.id = m.id_communaute
+    LEFT JOIN "COE_Communaute" p ON p.id = m.id_perimetre
     LEFT JOIN "COE_Fiche" f ON UPPER(f.user_id) = UPPER(m.code_agent)
     WHERE '{code}' <> ''
       AND UPPER(m.code_agent) = UPPER('{code}')
       AND m.actif = true
-      AND c.active = true
-      AND p.active = true
+      AND (c.id IS NULL OR c.active = true)
+      AND (p.id IS NULL OR p.active = true)
     LIMIT 1;
   ↓code [variables.RequestableVariable]: 
     description: Code agent SI
@@ -269,10 +269,10 @@ jdbcUserPassword: xbc870dc161b16b0f06a9d06fdcf09c94b379617ee87b40aa7f19879967298
         c.libelle AS communaute,
         m.id_perimetre
     FROM "COE_Membre" m
-    JOIN "COE_Communaute" c ON c.id = m.id_communaute
+    LEFT JOIN "COE_Communaute" c ON c.id = m.id_communaute
     LEFT JOIN "COE_Fiche" f ON UPPER(f.user_id) = UPPER(m.code_agent)
     WHERE m.actif = true
-      AND c.active = true
+      AND (c.id IS NULL OR c.active = true)
       AND (
         '{cle}' = ''
         OR UPPER(m.code_agent) = UPPER('{cle}')

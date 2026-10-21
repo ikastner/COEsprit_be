@@ -406,6 +406,7 @@ comment: 'Point d''entree login Portefeuille. Si authHorsSI=true : code agent + 
             piloteCommunaute = row.pilote_communaute === true || String(row.pilote_communaute) === "true" || String(row.pilote_communaute) === "t";
             rolePick = roleSession;
             roleList = [roleSession];
+            idCommunaute = String(row.id_communaute || "");
             errMsg = "";
         }
         '
@@ -530,6 +531,19 @@ comment: 'Point d''entree login Portefeuille. Si authHorsSI=true : code agent + 
                 - SmartType: 
                   - ↑mode: PLAIN
                   - →→: COESPRIT
+          ↓idCommunaute [steps.JsonFieldStep-1791387220144]: 
+            key: 
+              - xmlizable: 
+                - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                - SmartType: 
+                  - ↑mode: PLAIN
+                  - →→: idCommunaute
+            value: 
+              - xmlizable: 
+                - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                - SmartType: 
+                  - ↑mode: JS
+                  - →→: idCommunaute
           ↓n_1 [steps.JsonObjectStep-1791387220124]: 
             comment: Stub hierarchie LDAP attendue par lib_common_be.auth__get__in__session
             key: 

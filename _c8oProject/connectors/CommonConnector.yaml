@@ -19,16 +19,16 @@ jdbcUserPassword: xbc870dc161b16b0f06a9d06fdcf09c94b379617ee87b40aa7f19879967298
     LEFT JOIN "APP_AgentPortefeuille" p ON UPPER(p."CodeAgent") = UPPER(r."CodeAgent")
     LEFT JOIN "APP_OrgSitesRecouv" s ON r."IDSite" = s."ID"
     WHERE COALESCE(r."Compte_AD_Desactive", FALSE) = FALSE
+      AND length(btrim('{q}')) >= 2
       AND (
-        '{q}' = ''
-        OR r."CodeAgent" ILIKE '%' || '{q}' || '%'
+        r."CodeAgent" ILIKE '%' || '{q}' || '%'
         OR COALESCE(r."Prenom", '') ILIKE '%' || '{q}' || '%'
         OR COALESCE(r."Nom", '') ILIKE '%' || '{q}' || '%'
         OR COALESCE(r."NomComplet", '') ILIKE '%' || '{q}' || '%'
         OR COALESCE(r."Courriel", '') ILIKE '%' || '{q}' || '%'
       )
-    ORDER BY 2
-    LIMIT 80
+    ORDER BY r."Nom", r."Prenom"
+    LIMIT 100
   ↓q [variables.RequestableVariable-1791238775406]: 
     description: q
 ↓T_Agent_Lire [transactions.SqlTransaction]: 
