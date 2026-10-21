@@ -11,12 +11,13 @@ jdbcUserPassword: xbc870dc161b16b0f06a9d06fdcf09c94b379617ee87b40aa7f19879967298
         COALESCE(NULLIF(r."NomComplet", ''), btrim(concat(COALESCE(r."Prenom", ''), ' ', COALESCE(r."Nom", '')))) AS nom,
         COALESCE(r."Prenom", '') AS prenom,
         COALESCE(r."Courriel", '') AS mail,
-        COALESCE(r."Ville", '') AS site,
+        COALESCE(s."OrgSite", '') AS site,
         COALESCE(p."LibelleService", '') AS libelle_service,
         CASE WHEN COALESCE(btrim(p."LibelleService"), '') = '' THEN 'non' ELSE 'oui' END AS a_mapping,
         'non' AS deja_membre
     FROM "RET_Agent_Planning" r
     LEFT JOIN "APP_AgentPortefeuille" p ON UPPER(p."CodeAgent") = UPPER(r."CodeAgent")
+    LEFT JOIN "APP_OrgSitesRecouv" s ON r."IDSite" = s."ID"
     WHERE COALESCE(r."Compte_AD_Desactive", FALSE) = FALSE
       AND (
         '{q}' = ''
@@ -39,11 +40,12 @@ jdbcUserPassword: xbc870dc161b16b0f06a9d06fdcf09c94b379617ee87b40aa7f19879967298
         COALESCE(NULLIF(r."NomComplet", ''), btrim(concat(COALESCE(r."Prenom", ''), ' ', COALESCE(r."Nom", '')))) AS nom,
         COALESCE(NULLIF(r."NomComplet", ''), r."Prenom", '') AS nom_complet,
         COALESCE(r."Courriel", '') AS mail,
-        COALESCE(r."Ville", '') AS site,
+        COALESCE(s."OrgSite", '') AS site,
         COALESCE(p."LibelleService", '') AS libelle_service,
         COALESCE(r."Compte_AD_Desactive", false) AS desactive
     FROM "RET_Agent_Planning" r
     LEFT JOIN "APP_AgentPortefeuille" p ON UPPER(p."CodeAgent") = UPPER(r."CodeAgent")
+    LEFT JOIN "APP_OrgSitesRecouv" s ON r."IDSite" = s."ID"
     WHERE '{codes}' <> ''
       AND UPPER(r."CodeAgent") = ANY (string_to_array(UPPER(replace('{codes}', ' ', '')), ','))
     ORDER BY r."CodeAgent"
