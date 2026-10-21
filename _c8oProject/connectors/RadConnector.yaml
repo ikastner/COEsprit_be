@@ -759,7 +759,7 @@ jdbcUserPassword: xbc870dc161b16b0f06a9d06fdcf09c94b379617ee87b40aa7f19879967298
   ↓actif [variables.RequestableVariable]: 
     description: oui ou non pour desactiver
 ↓T_Membre_Ajouter [transactions.SqlTransaction]: 
-  comment: Ajoute un agent a une communaute et un perimetre. Refuse sans LibelleService ou si deja membre.
+  comment: Ajoute un agent a une communaute et un perimetre. Refuse si deja membre.
   sqlQuery: |
     WITH acteur AS (
         SELECT m.code_agent, m.role_session, m.pilote_communaute, m.role_local, m.id_communaute, m.id_perimetre
@@ -786,7 +786,6 @@ jdbcUserPassword: xbc870dc161b16b0f06a9d06fdcf09c94b379617ee87b40aa7f19879967298
             WHEN NOT EXISTS (SELECT 1 FROM acteur) THEN 'Action non autorisee'
             WHEN NOT EXISTS (SELECT 1 FROM peri) THEN 'Perimetre invalide'
             WHEN NOT EXISTS (SELECT 1 FROM agent) THEN 'Agent introuvable'
-            WHEN COALESCE(btrim((SELECT libelle_service FROM agent)), '') = '' THEN 'Ajout bloque : pas de LibelleService'
             WHEN EXISTS (
                 SELECT 1 FROM "COE_Membre" m
                 WHERE UPPER(m.code_agent) = UPPER((SELECT code_agent FROM agent)) AND m.actif = true

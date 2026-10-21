@@ -1,7 +1,7 @@
 -- COEsprit — annuaire hors SI pour Admin et Pilote.
 -- Additif : ne rejoue pas 001_ddl.sql (celui-ci detruit le schema).
 -- La transaction de lecture sera remplacee plus tard par APP_AgentPortefeuille.
--- LibelleService vide = ajout refuse.
+-- LibelleService peut etre vide : l'ajout reste autorise.
 
 SET search_path TO coesprit;
 
